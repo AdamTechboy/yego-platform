@@ -154,6 +154,15 @@ The YEGO officials’ corrections were implemented on top of the backend:
 
 All checks were rerun after these changes: typecheck, lint, 25 unit tests, 13 integration tests and the production build pass. The SmartWeb-style production server was tested on `http://localhost:3001` (homepage, news, ERART, training, partners, map, wards data, health check and login).
 
+## 9b. Role access corrections (third implementation pass)
+
+- **National YEGO Administrator** can report an incident directly from the ERART dashboard or incident page, access the incident queue, and forward verified incidents to any of the 11 agencies.
+- **Verification Officer** can access Guards & screening, approve/verify applicants, and send direct messages that appear in the applicant's portal inbox.
+- **State Coordinator** has the same operational views and capabilities as the Super Administrator within the Lagos state scope, except role management; the state selector remains locked.
+- **Training Officer** has a dedicated Training Dashboard showing every applicant's modules, assessment score, certification state and last activity; it can record progress, message the applicant and export a CSV progress report.
+- Direct applicant messages are stored as notifications, mirrored in application history and displayed in the applicant/Guard portal inbox.
+- Integration tests now cover National incident reporting, Verification Officer approval/messaging, Training Officer progress updates and State Coordinator operational access.
+
 ## 10. Files added or changed
 
 - `db/migrations/0001_init.sql`, `0002_sequences.sql`

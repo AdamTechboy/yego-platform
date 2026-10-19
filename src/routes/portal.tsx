@@ -32,7 +32,7 @@ import {
   SeverityBadge,
 } from '@/components/yego/status'
 import { ApplicationTracker } from '@/components/yego/tracker'
-import { checkIn, confirmWhatsApp, raiseWarning, signOut, useDB } from '@/lib/demo-store'
+import { checkIn, confirmWhatsApp, raiseWarning, signOut, useDB, type AppNotification } from '@/lib/demo-store'
 import {
   EARLY_WARNING_TYPES,
   INCIDENT_STAGES,
@@ -179,8 +179,28 @@ function Messages({ items }: { items: Announcement[] }) {
   )
 }
 
+function ApplicantInbox({ items }: { items: AppNotification[] }) {
+  if (!items.length) return <p className="text-sm text-muted-foreground">No direct messages yet.</p>
+  return (
+    <ul className="space-y-2">
+      {items.map((item) => (
+        <li key={item.id} className="rounded-lg border border-primary/30 bg-secondary/50 p-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full bg-primary px-2 py-0.5 font-bold text-primary-foreground">YEGO</span>
+            <span>{timeAgo(item.createdAt)}</span>
+          </div>
+          <p className="mt-1.5 font-bold">{item.title}</p>
+          <p className="text-sm text-muted-foreground">{item.body}</p>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function ApplicantWorkspace({ app }: { app: Application }) {
+  const { notifications } = useDB()
   const msgs = useMyAnnouncements(app).filter((m) => m.kind === 'Training' || m.kind === 'Announcement')
+  const inbox = notifications.filter((item) => item.kind === 'applicant_message')
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       <section className="rounded-lg border bg-card p-5 lg:row-span-2">
@@ -210,17 +230,24 @@ function ApplicantWorkspace({ app }: { app: Application }) {
         </h2>
         <Messages items={msgs} />
       </section>
+      <section className="space-y-3 lg:col-span-3">
+        <h2 className="flex items-center gap-2 font-black">
+          <MessageCircle className="size-5 text-primary" /> Messages from YEGO
+        </h2>
+        <ApplicantInbox items={inbox} />
+      </section>
     </div>
   )
 }
 
 function GuardWorkspace({ app }: { app: Application }) {
-  const { incidents, warnings } = useDB()
+  const { incidents, warnings, notifications } = useDB()
   const msgs = useMyAnnouncements(app)
   const mine = incidents.filter((i) => i.reporter === app.fullName)
   const st = getState(app.stateOfResidence)
   const puIncidents = incidents.filter((i) => i.pollingUnit === app.pollingUnit)
   const areaWarnings = warnings.filter((w) => w.state === app.stateOfResidence && w.access === 'All Guards in area')
+  const inbox = notifications.filter((item) => item.kind === 'applicant_message')
   const [checkedIn, setCheckedIn] = useState(false)
 
   return (
@@ -317,7 +344,15 @@ function GuardWorkspace({ app }: { app: Application }) {
         <WarningTip />
       </TabsContent>
 
-      <TabsContent value="msgs" className="mt-4">
+      <TabsContent value="msgs" className="mt-4 space-y-4">
+        {inbox.length > 0 && (
+          <div>
+            <h3 className="mb-2 flex items-center gap-2 font-bold">
+              <MessageCircle className="size-4 text-primary" /> Direct from YEGO
+            </h3>
+            <ApplicantInbox items={inbox} />
+          </div>
+        )}
         <Messages items={msgs} />
       </TabsContent>
 

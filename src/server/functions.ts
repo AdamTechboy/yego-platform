@@ -10,16 +10,20 @@ import {
   confirmWhatsApp,
   createApplication,
   getNotifications,
+  getTrainingRoster,
   listPollingUnits,
+  messageApplicant,
   lookupApplication,
   markNotificationsRead,
   postAnnouncement,
   raiseWarning,
   referIncident,
+  reportIncidentByCommand,
   setApplicationStatus,
   setIncidentStatus,
   submitIncident,
   submitTrainingQuiz,
+  updateTrainingProgress,
 } from './repo.server'
 import * as v from './validation.server'
 
@@ -160,6 +164,39 @@ export const listPollingUnitsFn = createServerFn({ method: 'POST' })
   .validator((input: unknown) => v.parse(v.pollingUnitsQuery, input))
   .handler(async ({ data }) => {
     return listPollingUnits(data.state, data.lga, data.ward)
+  })
+
+export const reportIncidentFn = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => v.parse(v.commandIncidentInput, input))
+  .handler(async ({ data }) => {
+    assertSameOrigin()
+    const user = await currentUser()
+    if (!user) throw new Error('Sign in to continue.')
+    return reportIncidentByCommand(user, data)
+  })
+
+export const getTrainingRosterFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const user = await currentUser()
+  if (!user) return []
+  return getTrainingRoster(user)
+})
+
+export const setTrainingProgressFn = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => v.parse(v.trainingProgressInput, input))
+  .handler(async ({ data }) => {
+    assertSameOrigin()
+    const user = await currentUser()
+    if (!user) throw new Error('Sign in to continue.')
+    return updateTrainingProgress(user, data)
+  })
+
+export const messageApplicantFn = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => v.parse(v.messageApplicantInput, input))
+  .handler(async ({ data }) => {
+    assertSameOrigin()
+    const user = await currentUser()
+    if (!user) throw new Error('Sign in to continue.')
+    return messageApplicant(user, data)
   })
 
 export const getNotificationsFn = createServerFn({ method: 'GET' }).handler(async () => {

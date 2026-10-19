@@ -182,3 +182,27 @@ export const pollingUnitsQuery = z.object({
   lga: z.string().trim().min(2).max(120),
   ward: z.string().trim().min(2).max(160),
 })
+
+export const commandIncidentInput = z.object({
+  state: z.string().refine((value) => stateNames.has(value), 'Select a valid state.'),
+  lga: z.string().trim().min(2).max(120),
+  ward: z.string().trim().min(2).max(160),
+  pollingUnit: z.string().trim().max(300).optional(),
+  type: z.string().refine((value) => (INCIDENT_TYPES as readonly string[]).includes(value), 'Select an incident type.'),
+  severity: z.enum(['Low', 'Medium', 'High', 'Critical']),
+  description: z.string().trim().min(3, 'Describe what happened.').max(4000),
+  occurredAt: z.string().refine((value) => !Number.isNaN(Date.parse(value)), 'Enter a valid time.'),
+  electionDay: z.boolean().default(false),
+})
+
+export const messageApplicantInput = z.object({
+  applicationId: z.string().trim().min(4).max(40),
+  title: z.string().trim().min(3).max(160).optional(),
+  body: z.string().trim().min(4, 'Write a message.').max(2000),
+})
+
+export const trainingProgressInput = z.object({
+  applicationId: z.string().trim().min(4).max(40),
+  progress: z.number().int().min(0).max(100),
+  note: z.string().trim().max(2000).optional(),
+})

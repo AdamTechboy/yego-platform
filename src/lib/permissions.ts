@@ -3,6 +3,7 @@
 export type Capability =
   | 'view:analytics'
   | 'view:incidents'
+  | 'report:incidents'
   | 'screen:applicants'
   | 'approve:verification'
   | 'assign:polling-units'
@@ -18,6 +19,7 @@ export type Capability =
 const ALL: Capability[] = [
   'view:analytics',
   'view:incidents',
+  'report:incidents',
   'screen:applicants',
   'approve:verification',
   'assign:polling-units',
@@ -34,10 +36,10 @@ const ALL: Capability[] = [
 const MATRIX: Record<string, Capability[]> = {
   'Super Administrator': ALL,
   'National YEGO Administrator': ALL.filter((c) => c !== 'manage:roles'),
-  'Regional Coordinator': ['view:analytics', 'view:incidents', 'screen:applicants', 'assign:polling-units', 'view:early-warning', 'raise:early-warning', 'send:state'],
-  'State Coordinator': ['view:analytics', 'view:incidents', 'screen:applicants', 'approve:verification', 'assign:polling-units', 'view:early-warning', 'raise:early-warning', 'send:state'],
-  'LGA Coordinator': ['view:analytics', 'view:incidents', 'screen:applicants', 'view:early-warning', 'raise:early-warning', 'send:state'],
-  'Verification Officer': ['view:analytics', 'view:incidents', 'verify:incidents', 'refer:incidents', 'view:early-warning'],
+  'Regional Coordinator': ['view:analytics', 'view:incidents', 'report:incidents', 'screen:applicants', 'assign:polling-units', 'view:early-warning', 'raise:early-warning', 'send:state'],
+  'State Coordinator': ALL.filter((c) => c !== 'manage:roles'),
+  'LGA Coordinator': ['view:analytics', 'view:incidents', 'report:incidents', 'screen:applicants', 'view:early-warning', 'raise:early-warning', 'send:state'],
+  'Verification Officer': ['view:analytics', 'view:incidents', 'screen:applicants', 'approve:verification', 'verify:incidents', 'refer:incidents', 'view:early-warning'],
   'Training Officer': ['view:analytics', 'manage:training'],
 }
 
@@ -48,6 +50,7 @@ export function can(role: string | undefined, cap: Capability) {
 export const CAPABILITY_LABELS: Record<Capability, string> = {
   'view:analytics': 'View dashboards',
   'view:incidents': 'View incident queue',
+  'report:incidents': 'Report an incident',
   'screen:applicants': 'Screen applicants',
   'approve:verification': 'Approve verification',
   'assign:polling-units': 'Assign polling units',

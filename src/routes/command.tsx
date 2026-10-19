@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import {
   BarChart3,
   Lock,
+  GraduationCap,
   LogOut,
   Megaphone,
   ShieldAlert,
@@ -13,6 +14,7 @@ import { ApplicantsView } from '@/components/command/applicants'
 import { CommandNotifications } from '@/components/command/notifications'
 import { IncidentsView } from '@/components/command/incidents'
 import { OverviewView } from '@/components/command/overview'
+import { TrainingView } from '@/components/command/training'
 import { UpdatesView } from '@/components/command/updates'
 import { YegoLogo } from '@/components/yego/logo'
 import { signOut, useDB } from '@/lib/demo-store'
@@ -24,6 +26,7 @@ const VIEWS = [
   { id: 'incidents', label: 'Incidents', icon: ShieldAlert, cap: 'view:incidents' },
   { id: 'applicants', label: 'Guards & screening', icon: Users, cap: 'screen:applicants' },
   { id: 'updates', label: 'Shared updates', icon: Megaphone, cap: 'view:analytics' },
+  { id: 'training', label: 'Training Dashboard', icon: GraduationCap, cap: 'manage:training' },
 ] as const satisfies readonly { id: string; label: string; icon: unknown; cap: Capability }[]
 
 type ViewId = (typeof VIEWS)[number]['id']
@@ -133,6 +136,7 @@ function CommandPage() {
           {current.id === 'incidents' && <IncidentsView lockedState={lockedState} />}
           {current.id === 'applicants' && <ApplicantsView lockedState={lockedState} />}
           {current.id === 'updates' && <UpdatesView />}
+          {current.id === 'training' && <TrainingView />}
         </div>
       </main>
     </div>

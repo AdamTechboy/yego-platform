@@ -1,7 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Activity, AlertOctagon } from 'lucide-react'
+import { Activity, AlertOctagon, ArrowRight, GraduationCap, Users } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
+import { ReportIncidentDialog } from '@/components/command/report-incident'
+import { can } from '@/lib/permissions'
+import { useActor } from './shared'
 import { NativeSelect } from '@/components/yego/fields'
 import { NigeriaMap } from '@/components/yego/nigeria-map'
 import { IncidentStatusBadge, SEVERITY_COLOR, SeverityBadge } from '@/components/yego/status'
@@ -26,6 +30,7 @@ function lgaBreakdown(stateName: string, total: number) {
 
 export function OverviewView({ lockedState }: { lockedState?: string }) {
   const { incidents, warnings, applications } = useDB()
+  const { role } = useActor()
   const [state, setState] = useState('')
   const [lga, setLga] = useState('')
   const [status, setStatus] = useState('')
@@ -58,6 +63,30 @@ export function OverviewView({ lockedState }: { lockedState?: string }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-2">
+        {can(role, 'report:incidents') && <ReportIncidentDialog lockedState={lockedState} />}
+        {can(role, 'view:incidents') && (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/command" search={{ view: 'incidents' }}>
+              Open ERART queue <ArrowRight />
+            </Link>
+          </Button>
+        )}
+        {can(role, 'screen:applicants') && (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/command" search={{ view: 'applicants' }}>
+              <Users /> Screen applicants
+            </Link>
+          </Button>
+        )}
+        {can(role, 'manage:training') && (
+          <Button asChild size="sm" variant="outline">
+            <Link to="/command" search={{ view: 'training' }}>
+              <GraduationCap /> Training dashboard
+            </Link>
+          </Button>
+        )}
+      </div>
       <GeoFilters state={state} lga={lga} onState={setState} onLga={setLga} lockedState={lockedState}>
         <label className="w-48 text-xs font-semibold">
           Incident status

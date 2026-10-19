@@ -35,6 +35,7 @@ import { fmtDateTime, mapsLink, timeAgo } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { GeoFilters, useActor } from './shared'
+import { ReportIncidentDialog } from './report-incident'
 
 const CATEGORIES = [
   'Electoral offence',
@@ -48,6 +49,7 @@ const CATEGORIES = [
 
 export function IncidentsView({ lockedState }: { lockedState?: string }) {
   const { incidents } = useDB()
+  const { role } = useActor()
   const [state, setState] = useState('')
   const [lga, setLga] = useState('')
   const [status, setStatus] = useState('')
@@ -68,6 +70,11 @@ export function IncidentsView({ lockedState }: { lockedState?: string }) {
 
   return (
     <div className="space-y-4">
+      {can(role, 'report:incidents') && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <ReportIncidentDialog lockedState={lockedState} />
+        </div>
+      )}
       <GeoFilters state={state} lga={lga} onState={setState} onLga={setLga} lockedState={lockedState}>
         <label className="w-44 text-xs font-semibold">
           Status

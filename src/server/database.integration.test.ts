@@ -5,6 +5,10 @@ import { mapAuthUser } from '@/server/auth.server'
 import { query } from '@/server/db.server'
 import {
   assignPollingUnit,
+  getTrainingRoster,
+  messageApplicant,
+  reportIncidentByCommand,
+  updateTrainingProgress,
   bootstrap,
   createApplication,
   lookupApplication,
@@ -79,6 +83,7 @@ async function makeGuard(applicationId: string, state: string, lga: string): Pro
 let national: AuthUser
 let verification: AuthUser
 let lagosCoordinator: AuthUser
+let trainingOfficer: AuthUser
 
 beforeAll(async () => {
   const healthy = await query<{ ok: number }>('select 1 as ok')
@@ -87,12 +92,14 @@ beforeAll(async () => {
   const nationalRow = await query<Record<string, unknown>>("select * from users where email = 'command@yego.ng'")
   const verificationRow = await query<Record<string, unknown>>("select * from users where email = 'verify@yego.ng'")
   const lagosRow = await query<Record<string, unknown>>("select * from users where email = 'lagos@yego.ng'")
-  if (!nationalRow.rows[0] || !verificationRow.rows[0] || !lagosRow.rows[0]) {
+  const trainingRow = await query<Record<string, unknown>>("select * from users where email = 'training@yego.ng'")
+  if (!nationalRow.rows[0] || !verificationRow.rows[0] || !lagosRow.rows[0] || !trainingRow.rows[0]) {
     throw new Error('Seed accounts are missing. Run `pnpm db:seed --demo --reset` before integration tests.')
   }
   national = mapAuthUser(nationalRow.rows[0])
   verification = mapAuthUser(verificationRow.rows[0])
   lagosCoordinator = mapAuthUser(lagosRow.rows[0])
+  trainingOfficer = mapAuthUser(trainingRow.rows[0])
 })
 
 afterAll(async () => {
@@ -112,6 +119,7 @@ afterAll(async () => {
   if (createdUsers.length) {
     await query('delete from users where id = any($1::uuid[])', [createdUsers])
   }
+  await query("delete from users where application_id is null and email like 'guard-%@yego.local'")
 })
 
 describe('applications', () => {
@@ -159,8 +167,14 @@ describe('applications', () => {
 
   it('enforces the application workflow and role capabilities', async () => {
     const application = await makeApplication()
+    const trainingWithNationalScope: AuthUser = {
+      ...trainingOfficer,
+      scope_kind: 'national',
+      scope_state: null,
+      scope_lga: null,
+    }
     await expect(
-      setApplicationStatus(verification, { applicationId: application.id, status: 'Approved' }),
+      setApplicationStatus(trainingWithNationalScope, { applicationId: application.id, status: 'Approved' }),
     ).rejects.toThrow(/cannot perform this action/)
 
     await setApplicationStatus(national, { applicationId: application.id, status: 'Under Review', note: 'Checked by test' })
@@ -322,5 +336,80 @@ describe('incident workflow', () => {
       [application.id],
     )
     expect(row.rows[0].polling_unit).toContain('PU 027')
+  })
+
+
+  it('lets a National Administrator report an incident for the queue', async () => {
+    const incident = await reportIncidentByCommand(national, {
+      state: 'Lagos',
+      lga: 'Surulere',
+      ward: 'Ward D',
+      pollingUnit: 'PU 027 – Randle Ave. Open Space',
+      type: 'Voter intimidation',
+      severity: 'High',
+      description: 'Report filed by the National Administrator during the integration test.',
+      occurredAt: new Date().toISOString(),
+      electionDay: false,
+    })
+    createdIncidents.push(incident.id)
+    expect(incident.status).toBe('Reported')
+    expect(incident.reporter).toContain('National YEGO Administrator')
+  })
+
+  it('lets a Verification Officer approve an applicant and message them', async () => {
+    const application = await makeApplication()
+    await setApplicationStatus(national, { applicationId: application.id, status: 'Under Review' })
+    await setApplicationStatus(national, { applicationId: application.id, status: 'Screening' })
+    await setApplicationStatus(verification, { applicationId: application.id, status: 'Approved' })
+    const row = await query<{ status: string }>('select status from applications where public_id = $1', [application.id])
+    expect(row.rows[0].status).toBe('Approved')
+
+    await messageApplicant(verification, {
+      applicationId: application.id,
+      title: 'Screening complete',
+      body: 'Your application has been approved. Watch the portal for training access.',
+    })
+    const notification = await query<{ n: number }>(
+      "select count(*)::int as n from notifications n join users u on u.id = n.user_id join applications a on a.id = u.application_id where a.public_id = $1 and n.kind = 'applicant_message'",
+      [application.id],
+    )
+    expect(notification.rows[0].n).toBe(1)
+  })
+
+  it('gives a Training Officer the roster and lets them record progress', async () => {
+    const application = await makeApplication()
+    const stored = await applicationRow(application.id)
+    await query("update applications set status = 'Training Required', training_progress = 10 where id = $1", [stored.id])
+
+    const roster = await getTrainingRoster(trainingOfficer)
+    const row = roster.find((item) => item.applicationId === application.id)
+    expect(row).toBeTruthy()
+    expect(row?.trainingProgress).toBe(10)
+
+    const updated = await updateTrainingProgress(trainingOfficer, {
+      applicationId: application.id,
+      progress: 100,
+      note: 'All modules completed and verified by the Training Officer.',
+    })
+    expect(updated.progress).toBe(100)
+    expect(updated.status).toBe('Training Completed')
+
+    const history = await query<{ n: number }>(
+      "select count(*)::int as n from application_history where application_id = $1 and action = 'Training progress updated'",
+      [stored.id],
+    )
+    expect(history.rows[0].n).toBeGreaterThan(0)
+  })
+
+  it('gives a State Coordinator full operational capabilities inside the state', async () => {
+    const application = await makeApplication({
+      stateOfOrigin: 'Lagos',
+      stateOfResidence: 'Lagos',
+      lga: 'Surulere',
+      ward: 'Ward D',
+    })
+    await setApplicationStatus(lagosCoordinator, { applicationId: application.id, status: 'Under Review' })
+    const row = await query<{ status: string }>('select status from applications where public_id = $1', [application.id])
+    expect(row.rows[0].status).toBe('Under Review')
   })
 })

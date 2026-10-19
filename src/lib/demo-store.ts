@@ -21,6 +21,10 @@ import {
   confirmWhatsAppFn,
   getBootstrapFn,
   getNotificationsFn,
+  getTrainingRosterFn,
+  messageApplicantFn,
+  reportIncidentFn,
+  setTrainingProgressFn,
   listPollingUnitsFn,
   loginCommandFn,
   loginGuardFn,
@@ -302,6 +306,51 @@ export async function checkIn(lat?: number, lng?: number): Promise<void> {
 
 export async function listPollingUnits(state: string, lga: string, ward: string) {
   return listPollingUnitsFn({ data: { state, lga, ward } })
+}
+
+/* Command reporting, applicant messaging and training administration ------- */
+
+export interface TrainingRosterRow {
+  applicationId: string
+  fullName: string
+  state: string
+  lga: string
+  status: ApplicationStatus
+  trainingProgress: number
+  modulesPassed: number
+  assessmentScore: number | null
+  certification: 'Pending' | 'Eligible' | 'Issued'
+  lastActivity: string | null
+}
+
+export async function reportIncident(input: {
+  state: string
+  lga: string
+  ward: string
+  pollingUnit?: string
+  type: string
+  severity: Severity
+  description: string
+  occurredAt: string
+  electionDay: boolean
+}): Promise<Incident> {
+  const incident = await reportIncidentFn({ data: input })
+  await refresh()
+  return incident
+}
+
+export async function getTrainingRoster(): Promise<TrainingRosterRow[]> {
+  return getTrainingRosterFn()
+}
+
+export async function setTrainingProgress(applicationId: string, progress: number, note?: string) {
+  const result = await setTrainingProgressFn({ data: { applicationId, progress, note } })
+  await refresh()
+  return result
+}
+
+export async function messageApplicant(applicationId: string, body: string, title?: string) {
+  await messageApplicantFn({ data: { applicationId, body, title } })
 }
 
 /* Notifications ----------------------------------------------------------- */

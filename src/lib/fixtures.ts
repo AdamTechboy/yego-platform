@@ -184,12 +184,12 @@ export interface Role {
 
 export const ROLES: Role[] = [
   { name: 'Super Administrator', scope: 'Entire platform', permissions: ['Manage all users and roles', 'System settings & audit logs', 'Backups and data exports'], operational: true },
-  { name: 'National YEGO Administrator', scope: 'All 36 states + FCT', permissions: ['Approve verification', 'National announcements', 'Refer incidents to agencies'], operational: true },
+  { name: 'National YEGO Administrator', scope: 'All 36 states + FCT', permissions: ['Report incidents to any agency', 'Approve verification', 'National announcements', 'Refer incidents to agencies'], operational: true },
   { name: 'Regional Coordinator', scope: 'Geopolitical zone', permissions: ['Zone dashboards', 'Regional instructions', 'Early-warning escalation'], operational: true },
-  { name: 'State Coordinator', scope: 'One state', permissions: ['Screen applicants', 'Assign polling units', 'State messages'], operational: true },
+  { name: 'State Coordinator', scope: 'One state', permissions: ['Full operational access within the state', 'Screen and approve applicants', 'Verify and refer incidents', 'Assign polling units', 'Training dashboard and state messages'], operational: true },
   { name: 'LGA Coordinator', scope: 'One LGA', permissions: ['Field roll-call', 'Ward-level messages', 'First-line report triage'], operational: true },
-  { name: 'Verification Officer', scope: 'Assigned queue', permissions: ['Review evidence', 'Request clarification', 'Verify / unverify incidents'], operational: true },
-  { name: 'Training Officer', scope: 'Training Centre', permissions: ['Upload modules & quizzes', 'Issue certificates', 'Track completion'], operational: true },
+  { name: 'Verification Officer', scope: 'Assigned queue', permissions: ['Screen and approve applicants', 'Message applicants with next steps', 'Review evidence', 'Request clarification', 'Verify / unverify incidents'], operational: true },
+  { name: 'Training Officer', scope: 'Training Centre', permissions: ['Track applicant training progress', 'Record and update progress', 'Message applicants', 'Issue certificates', 'Export progress reports'], operational: true },
   { name: 'YEGO Guard', scope: 'Assigned polling unit', permissions: ['Report incidents', 'Early-warning tips', 'Receive instructions'], operational: true },
   { name: 'Partner/Observer', scope: 'Shared views', permissions: ['Aggregated, anonymised analytics', 'Published statements'], operational: false },
   { name: 'Public User', scope: 'Public website', permissions: ['Apply to join', 'Check application status', 'Read news'], operational: false },

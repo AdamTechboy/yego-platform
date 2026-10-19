@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Sheet,
   SheetContent,
@@ -22,7 +23,7 @@ import {
 import { NativeSelect } from '@/components/yego/fields'
 import { AppStatusBadge } from '@/components/yego/status'
 import { ApplicationTracker } from '@/components/yego/tracker'
-import { assignPollingUnit, setApplicationStatus, useDB } from '@/lib/demo-store'
+import { assignPollingUnit, messageApplicant, setApplicationStatus, useDB } from '@/lib/demo-store'
 import { APPLICATION_STAGES, type Application } from '@/lib/fixtures'
 import { fmtDate } from '@/lib/format'
 import { can } from '@/lib/permissions'
@@ -138,6 +139,7 @@ function ApplicantProfile({ app }: { app: Application }) {
   const [ward, setWard] = useState(app.ward)
   const [pu, setPu] = useState(app.pollingUnit)
   const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState('')
   const idx = APPLICATION_STAGES.indexOf(app.status as (typeof APPLICATION_STAGES)[number])
   const next = idx >= 0 && idx < APPLICATION_STAGES.length - 1 ? APPLICATION_STAGES[idx + 1] : undefined
   const nextNeedsApproval = next && APPLICATION_STAGES.indexOf(next) >= APPLICATION_STAGES.indexOf('Approved')
@@ -242,6 +244,42 @@ function ApplicantProfile({ app }: { app: Application }) {
             )}
           </div>
         </section>
+
+        {(can(role, 'screen:applicants') || can(role, 'approve:verification') || can(role, 'manage:training')) && (
+          <section className="space-y-3 rounded-lg border border-primary/30 bg-secondary/40 p-4">
+            <h3 className="flex items-center gap-2 text-sm font-bold">
+              <MessageCircle className="size-4 text-primary" /> Message the applicant
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Tell the applicant what they need to carry on — missing documents, screening next steps, training or
+              deployment instructions. The message appears in their portal.
+            </p>
+            <Textarea
+              rows={3}
+              placeholder="e.g. Your NIN could not be verified. Upload a clearer photograph and confirm your WhatsApp number."
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+            />
+            <Button
+              size="sm"
+              disabled={busy || message.trim().length < 4}
+              onClick={() => {
+                setBusy(true)
+                void messageApplicant(app.id, message.trim(), 'Action needed on your application')
+                  .then(() => {
+                    setMessage('')
+                    toast.success('Message sent to the applicant’s portal.')
+                  })
+                  .catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : 'Could not send the message.'),
+                  )
+                  .finally(() => setBusy(false))
+              }}
+            >
+              <MessageCircle /> Send message
+            </Button>
+          </section>
+        )}
 
         <section className="space-y-3 rounded-lg border p-4">
           <h3 className="flex items-center gap-2 text-sm font-bold">

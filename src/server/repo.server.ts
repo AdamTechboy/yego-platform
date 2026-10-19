@@ -25,7 +25,7 @@ import {
   type IncidentRow,
   type WarningRow,
 } from './dto.server'
-import { AppError, encryptNin, normalizePhone } from './security.server'
+import { AppError, encryptNin, hashPassword, normalizePhone, randomToken } from './security.server'
 import { canAccessLga, canAccessState, scopeClause, type AuthUser } from './scope.server'
 
 export interface BootstrapData {
@@ -871,4 +871,258 @@ export async function listPollingUnits(state: string, lga: string, ward: string)
     [stateRow.code, lga],
   )
   return fallback.rows
+}
+
+/* Command reporting, applicant messaging and training administration -------- */
+
+async function ensureApplicantUser(app: ApplicationRow): Promise<string> {
+  const existing = await one<{ id: string }>('select id from users where application_id = $1', [app.id])
+  if (existing) return existing.id
+
+  const email = `guard-${app.public_id.toLowerCase()}@yego.local`
+  try {
+    const inserted = await query<{ id: string }>(
+      `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
+       values ($1,$2,$3,'YEGO Guard','guard','self',$4,$5,$6) returning id`,
+      [email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
+    )
+    return inserted.rows[0].id
+  } catch {
+    const fallback = await one<{ id: string }>('select id from users where application_id = $1', [app.id])
+    if (fallback) return fallback.id
+    throw new AppError('Could not create the applicant inbox.', 500)
+  }
+}
+
+function assertTrainingScope(user: AuthUser, app: ApplicationRow): void {
+  if (user.scope_kind === 'training' || user.scope_kind === 'national') return
+  if (user.scope_kind === 'lga') {
+    if (!canAccessLga(user, app.state_of_residence, app.lga)) {
+      throw new AppError('This applicant is outside your assigned area.', 403)
+    }
+    return
+  }
+  if (!canAccessState(user, app.state_of_residence)) {
+    throw new AppError('This applicant is outside your assigned area.', 403)
+  }
+}
+
+export async function reportIncidentByCommand(
+  user: AuthUser,
+  input: {
+    state: string
+    lga: string
+    ward: string
+    pollingUnit?: string
+    type: string
+    severity: 'Low' | 'Medium' | 'High' | 'Critical'
+    description: string
+    occurredAt: string
+    electionDay: boolean
+  },
+) {
+  requireCapability(user, 'report:incidents')
+  const state = STATES.find((item) => item.name === input.state)
+  if (!state) throw new AppError('Select a valid state.', 400)
+  if (!state.lgas.includes(input.lga)) throw new AppError('Select an LGA in the chosen state.', 400)
+  if (!canAccessState(user, input.state)) throw new AppError('That state is outside your assigned area.', 403)
+  if (user.scope_kind === 'lga' && !canAccessLga(user, input.state, input.lga)) {
+    throw new AppError('That LGA is outside your assigned area.', 403)
+  }
+
+  const created = await transaction(async (client) => {
+    const publicId = await nextRef(client, 'incident_ref_seq', (n) => `INC-${new Date().getFullYear()}-${n.slice(-6)}`, 6)
+    const inserted = await client.query<IncidentRow>(
+      `insert into incidents
+        (public_id, type, description, severity, state, lga, ward, polling_unit, lat, lng,
+         occurred_at, reporter_name, reporter_id, reporter_user_id, status, election_day)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'Reported',$15)
+       returning *`,
+      [
+        publicId,
+        input.type,
+        input.description,
+        input.severity,
+        input.state,
+        input.lga,
+        input.ward,
+        input.pollingUnit || 'To be assigned',
+        state.lat + (Math.random() - 0.5) * 0.16,
+        state.lng + (Math.random() - 0.5) * 0.16,
+        input.occurredAt,
+        `${user.name} (${user.role})`,
+        user.email,
+        user.id,
+        input.electionDay,
+      ],
+    )
+    const incident = inserted.rows[0]
+
+    await client.query(
+      `insert into incident_history (incident_id, action, to_status, actor_user_id, actor_label)
+       values ($1,'Reported','Reported',$2,$3)`,
+      [incident.id, user.id, `${user.name} (${user.role})`],
+    )
+
+    const admins = (await client.query<Record<string, unknown>>("select * from users where kind = 'command' and active = true")).rows
+    for (const admin of admins) {
+      if (admin.id === user.id) continue
+      if (!can(String(admin.role), 'view:incidents') || !adminSeesState(admin, input.state, input.lga)) continue
+      await client.query(
+        `insert into notifications (user_id, kind, title, body, entity_type, entity_id)
+         values ($1,'incident',$2,$3,'incident',$4)`,
+        [
+          admin.id,
+          `New ${input.severity.toLowerCase()} incident reported`,
+          `${input.type} · ${input.pollingUnit || 'PU to be assigned'}, ${input.lga}, ${input.state}`,
+          publicId,
+        ],
+      )
+    }
+
+    return incident
+  })
+
+  await audit(user, 'incident.reported_by_command', 'incident', created.public_id, { severity: input.severity })
+  return loadIncident(created.public_id)
+}
+
+export interface TrainingRosterRow {
+  applicationId: string
+  fullName: string
+  state: string
+  lga: string
+  status: ApplicationStatus
+  trainingProgress: number
+  modulesPassed: number
+  assessmentScore: number | null
+  certification: 'Pending' | 'Eligible' | 'Issued'
+  lastActivity: string | null
+}
+
+export async function getTrainingRoster(user: AuthUser): Promise<TrainingRosterRow[]> {
+  requireCapability(user, 'manage:training')
+  let sql = `select public_id, full_name, state_of_residence, lga, status, training_progress, updated_at
+             from applications`
+  let params: unknown[] = []
+  if (user.scope_kind !== 'training' && user.scope_kind !== 'national') {
+    const scope = scopeClause(user, 'state_of_residence', 'lga', 1)
+    if (scope.sql !== 'true') {
+      sql += ` where ${scope.sql}`
+      params = scope.params
+    }
+  }
+  sql += ' order by full_name limit 500'
+  const rows = await query<{
+    public_id: string
+    full_name: string
+    state_of_residence: string
+    lga: string
+    status: ApplicationStatus
+    training_progress: number
+    updated_at: Date
+  }>(sql, params)
+
+  const ids = rows.rows.map((row) => row.public_id)
+  const scores = ids.length
+    ? (
+        await query<{ public_id: string; score: number; last_at: Date }>(
+          `select a.public_id, round(avg(s.score))::int as score, max(s.last_at) as last_at
+           from applications a
+           join (
+             select application_id, module_id, max(score) as score, max(created_at) as last_at
+             from training_attempts group by application_id, module_id
+           ) s on s.application_id = a.id
+           where a.public_id = any($1::text[])
+           group by a.public_id`,
+          [ids],
+        )
+      ).rows
+    : []
+  const scoreByApp = new Map(scores.map((row) => [row.public_id, row]))
+  const totalModules = TRAINING_MODULES.length
+
+  return rows.rows.map((row) => {
+    const score = scoreByApp.get(row.public_id)
+    const certification: TrainingRosterRow['certification'] =
+      row.status === 'Certified/Active' ? 'Issued' : row.training_progress >= 100 ? 'Eligible' : 'Pending'
+    return {
+      applicationId: row.public_id,
+      fullName: row.full_name,
+      state: row.state_of_residence,
+      lga: row.lga,
+      status: row.status,
+      trainingProgress: row.training_progress,
+      modulesPassed: Math.round((row.training_progress / 100) * totalModules),
+      assessmentScore: score?.score ?? null,
+      certification,
+      lastActivity: score?.last_at ? score.last_at.toISOString() : row.updated_at.toISOString(),
+    }
+  })
+}
+
+export async function updateTrainingProgress(
+  user: AuthUser,
+  input: { applicationId: string; progress: number; note?: string },
+) {
+  requireCapability(user, 'manage:training')
+  const app = await one<ApplicationRow>('select * from applications where public_id = $1', [input.applicationId.toUpperCase()])
+  if (!app) throw new AppError('Application not found.', 404)
+  assertTrainingScope(user, app)
+
+  const progress = Math.max(0, Math.min(100, Math.round(input.progress)))
+  let status = app.status
+  if (app.status === 'Training Required' || app.status === 'Training Completed') {
+    status = progress >= 100 ? 'Training Completed' : 'Training Required'
+  }
+
+  await query('update applications set training_progress = $1, status = $2 where id = $3', [progress, status, app.id])
+  await query(
+    `insert into application_history (application_id, action, note, actor_user_id, actor_label)
+     values ($1,'Training progress updated',$2,$3,$4)`,
+    [app.id, `${progress}% · ${input.note ?? 'Updated by the Training Officer'}`, user.id, `${user.name} (${user.role})`],
+  )
+
+  const applicantUserId = await ensureApplicantUser(app)
+  await query(
+    `insert into notifications (user_id, kind, title, body, entity_type, entity_id)
+     values ($1,'applicant_message','Training progress updated',$2,'application',$3)`,
+    [
+      applicantUserId,
+      `Your training is now ${progress}%${progress >= 100 ? ' — training completed.' : '.'} ${input.note ?? ''}`.trim(),
+      app.public_id,
+    ],
+  )
+  await audit(user, 'training.progress_updated', 'application', app.public_id, { progress, status })
+  return { progress, status }
+}
+
+export async function messageApplicant(
+  user: AuthUser,
+  input: { applicationId: string; title?: string; body: string },
+) {
+  const allowed =
+    can(user.role, 'screen:applicants') ||
+    can(user.role, 'approve:verification') ||
+    can(user.role, 'manage:training')
+  if (!allowed) throw new AppError('Your role cannot message applicants.', 403)
+
+  const app = await one<ApplicationRow>('select * from applications where public_id = $1', [input.applicationId.toUpperCase()])
+  if (!app) throw new AppError('Application not found.', 404)
+  assertTrainingScope(user, app)
+
+  const applicantUserId = await ensureApplicantUser(app)
+  const title = input.title?.trim() || 'Message from YEGO'
+  await query(
+    `insert into notifications (user_id, kind, title, body, entity_type, entity_id)
+     values ($1,'applicant_message',$2,$3,'application',$4)`,
+    [applicantUserId, title, input.body, app.public_id],
+  )
+  await query(
+    `insert into application_history (application_id, action, note, actor_user_id, actor_label)
+     values ($1,'Message sent to applicant',$2,$3,$4)`,
+    [app.id, input.body, user.id, `${user.name} (${user.role})`],
+  )
+  await audit(user, 'application.message_sent', 'application', app.public_id)
+  return { ok: true }
 }

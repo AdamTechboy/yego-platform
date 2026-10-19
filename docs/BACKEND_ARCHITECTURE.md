@@ -185,12 +185,12 @@ Migrations live in `db/migrations/`:
 | Role | Scope |
 | --- | --- |
 | Super Administrator | Entire platform, users and roles |
-| National YEGO Administrator | National operations, no role management |
+| National YEGO Administrator | National operations, incident reporting to any agency, no role management |
 | Regional Coordinator | Geopolitical zone |
-| State Coordinator | One state |
+| State Coordinator | One state, full operational capabilities (no role management) |
 | LGA Coordinator | One LGA |
-| Verification Officer | Incidents only, national queue |
-| Training Officer | Training; no screening or incident queue |
+| Verification Officer | Applicant screening/approval and messaging, plus incidents |
+| Training Officer | Training roster, progress updates, applicant messaging and CSV reports |
 | YEGO Guard | Own application, reports and area messages |
 | Partner/Observer | Defined but no UI in Phase 1 |
 
