@@ -1,0 +1,62 @@
+// Role → capability map for the Command Centre. Enforced in the UI for the
+// preview; milestone 2 enforces the same map server-side.
+export type Capability =
+  | 'view:analytics'
+  | 'screen:applicants'
+  | 'approve:verification'
+  | 'assign:polling-units'
+  | 'verify:incidents'
+  | 'refer:incidents'
+  | 'view:early-warning'
+  | 'raise:early-warning'
+  | 'send:national'
+  | 'send:state'
+  | 'manage:training'
+  | 'manage:roles'
+
+const ALL: Capability[] = [
+  'view:analytics',
+  'screen:applicants',
+  'approve:verification',
+  'assign:polling-units',
+  'verify:incidents',
+  'refer:incidents',
+  'view:early-warning',
+  'raise:early-warning',
+  'send:national',
+  'send:state',
+  'manage:training',
+  'manage:roles',
+]
+
+const MATRIX: Record<string, Capability[]> = {
+  'Super Administrator': ALL,
+  'National YEGO Administrator': ALL.filter((c) => c !== 'manage:roles'),
+  'Regional Coordinator': ['view:analytics', 'screen:applicants', 'assign:polling-units', 'view:early-warning', 'raise:early-warning', 'send:state'],
+  'State Coordinator': ['view:analytics', 'screen:applicants', 'approve:verification', 'assign:polling-units', 'view:early-warning', 'raise:early-warning', 'send:state'],
+  'LGA Coordinator': ['view:analytics', 'screen:applicants', 'view:early-warning', 'raise:early-warning', 'send:state'],
+  'Verification Officer': ['view:analytics', 'screen:applicants', 'approve:verification', 'verify:incidents', 'refer:incidents', 'view:early-warning'],
+  'Training Officer': ['view:analytics', 'manage:training'],
+}
+
+export function can(role: string | undefined, cap: Capability) {
+  return !!role && (MATRIX[role]?.includes(cap) ?? false)
+}
+
+export const CAPABILITY_LABELS: Record<Capability, string> = {
+  'view:analytics': 'View dashboards',
+  'screen:applicants': 'Screen applicants',
+  'approve:verification': 'Approve verification',
+  'assign:polling-units': 'Assign polling units',
+  'verify:incidents': 'Verify incidents',
+  'refer:incidents': 'Refer to agencies',
+  'view:early-warning': 'View early warnings',
+  'raise:early-warning': 'Raise early warnings',
+  'send:national': 'National broadcasts',
+  'send:state': 'State/LGA messages',
+  'manage:training': 'Manage training',
+  'manage:roles': 'Manage users & roles',
+}
+
+export const ALL_CAPABILITIES = ALL
+export const ROLE_MATRIX = MATRIX
