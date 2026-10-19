@@ -10,6 +10,7 @@ import {
   confirmWhatsApp,
   createApplication,
   getNotifications,
+  listPollingUnits,
   lookupApplication,
   markNotificationsRead,
   postAnnouncement,
@@ -153,6 +154,12 @@ export const postAnnouncementFn = createServerFn({ method: 'POST' })
     const user = await currentUser()
     if (!user) throw new Error('Sign in to continue.')
     return postAnnouncement(user, data as { kind: string; title: string; body: string; audience?: string })
+  })
+
+export const listPollingUnitsFn = createServerFn({ method: 'POST' })
+  .validator((input: unknown) => v.parse(v.pollingUnitsQuery, input))
+  .handler(async ({ data }) => {
+    return listPollingUnits(data.state, data.lga, data.ward)
   })
 
 export const getNotificationsFn = createServerFn({ method: 'GET' }).handler(async () => {

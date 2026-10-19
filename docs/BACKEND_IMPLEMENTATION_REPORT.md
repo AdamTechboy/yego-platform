@@ -141,6 +141,19 @@ Browser verification performed:
 9. Confirm partner names and marks.
 10. Decide on MFA and the production identity provider.
 
+## 9a. Post-review corrections (second implementation pass)
+
+The YEGO officials’ corrections were implemented on top of the backend:
+
+1. **Community onboarding.** The application success screen now makes joining the YEGO WhatsApp community the required next step before tracking. The portal shows a join banner when confirmation is outstanding. The URL is configurable with `VITE_WHATSAPP_CHANNEL_URL`; the owner must supply the final link.
+2. **Cascading location fields.** State → LGA → ward are all selects. The ward list is the 8,809-ward national dataset reconciled to the 774 LGAs; LGA and ward can no longer be typed. Preferred polling unit is a select fed from the imported INEC register (176,834 rows), with a coordinator-assignment default when no unit matches.
+3. **ERART Dashboard.** Added the public `/erart` page explaining the YEGO Early Warning & Rapid Response Tool, renamed the Command landing view to “ERART Dashboard” and added the ERART link to the header.
+4. **News isolated to `/news`.** Removed the old placeholder news from the homepage and fixtures. Added a dedicated `/news` page with the supplied police partnership, 300,000 Guards, Osun guardrails, INEC 100-day/ERARM, Peace Corps, Man O’War, DSS, Democracy Must Not Be Blocked and INEC press-conference coverage, with source links. The homepage now only links to the news page.
+5. **Training Dashboard.** Renamed to “YEGO National Training Centre — The Electoral Accountability Academy”, with the tagline “Training Today’s Youth. Protecting Tomorrow’s Democracy.” Added the six dashboard metrics (registration, training, modules completed, assessment score, certification, assigned state/LGA) and the eight-step training process. Expanded the curriculum to nine modules, including Electoral Violence Prevention and Field Preparedness and Practical Assessment; every module is 20–30 minutes. The certified demo Guard shows 9 of 9 modules and an 85% assessment score.
+6. **SmartWeb hosting.** Added `server.mjs` (standalone Node SSR + static asset server), `app.js`/`package.json` entry points and `deploy/smartweb/README.md` with Node 22+, PostgreSQL, cPanel/Passenger, environment, migration, domain and SSL instructions.
+
+All checks were rerun after these changes: typecheck, lint, 25 unit tests, 13 integration tests and the production build pass. The SmartWeb-style production server was tested on `http://localhost:3001` (homepage, news, ERART, training, partners, map, wards data, health check and login).
+
 ## 10. Files added or changed
 
 - `db/migrations/0001_init.sql`, `0002_sequences.sql`

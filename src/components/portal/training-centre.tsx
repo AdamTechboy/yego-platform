@@ -15,6 +15,13 @@ const N = TRAINING_MODULES.length
 export function TrainingCentre({ app }: { app: Application }) {
   const unlocked = ['Training Required', 'Training Completed', 'Certified/Active'].includes(app.status)
   const passed = Math.round((app.trainingProgress / 100) * N)
+  const registrationStatus = ['Application Submitted', 'Under Review', 'Screening'].includes(app.status)
+    ? 'Pending'
+    : 'Verified'
+  const trainingStatus =
+    app.trainingProgress === 0 ? 'Not Started' : app.trainingProgress >= 100 ? 'Completed' : 'In Progress'
+  const certificationStatus =
+    app.status === 'Certified/Active' ? 'Issued' : app.trainingProgress >= 100 ? 'Eligible' : 'Pending'
   const [open, setOpen] = useState<string | null>(null)
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [busy, setBusy] = useState(false)
@@ -53,6 +60,28 @@ export function TrainingCentre({ app }: { app: Application }) {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-lg border bg-card p-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">YEGO National Training Centre</p>
+        <h2 className="mt-1 font-display text-xl font-black">The Electoral Accountability Academy</h2>
+        <p className="text-sm text-muted-foreground">Training Today’s Youth. Protecting Tomorrow’s Democracy.</p>
+
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {[
+            ['Registration', registrationStatus],
+            ['Training', trainingStatus],
+            ['Modules completed', `${passed} of ${N}`],
+            ['Assessment score', app.assessmentScore == null ? '—' : `${app.assessmentScore}%`],
+            ['Certification', certificationStatus],
+            ['Assigned state', `${app.stateOfResidence} / ${app.lga}`],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-md border bg-background p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+              <p className="mt-0.5 text-sm font-bold">{value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-center justify-between text-sm">
           <span className="font-semibold">Course progress</span>

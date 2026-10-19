@@ -42,7 +42,7 @@ export const applicationInput = z
     stateOfResidence: z.string().refine((value) => stateNames.has(value), 'Select a valid state of residence.'),
     lga: z.string().min(2).max(120),
     ward: z.string().trim().min(2, 'Enter your ward or registration area.').max(160),
-    pollingUnit: z.string().trim().max(200).optional(),
+    pollingUnit: z.string().trim().max(300).optional(),
     background: z.string().refine((value) => PROFESSIONAL_BACKGROUNDS.includes(value), 'Select your background.'),
     experience: z.string().trim().max(2000).optional().default(''),
     photo: z
@@ -176,3 +176,9 @@ export function parse<T>(schema: z.ZodType<T>, input: unknown): T {
   }
   return result.data
 }
+
+export const pollingUnitsQuery = z.object({
+  state: z.string().refine((value) => stateNames.has(value), 'Select a valid state.'),
+  lga: z.string().trim().min(2).max(120),
+  ward: z.string().trim().min(2).max(160),
+})

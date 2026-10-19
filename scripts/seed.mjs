@@ -71,7 +71,7 @@ function appLga(account, applications) {
 
 async function seedDemo(client) {
   const fixtures = await loadFixtures()
-  const { SEED_APPLICATIONS, SEED_INCIDENTS, SEED_WARNINGS, SEED_ANNOUNCEMENTS, DEMO_ACCOUNTS, AGENCIES } = fixtures
+  const { SEED_APPLICATIONS, SEED_INCIDENTS, SEED_WARNINGS, SEED_ANNOUNCEMENTS, DEMO_ACCOUNTS, AGENCIES, TRAINING_MODULES } = fixtures
 
   const appIds = new Map()
   const userIds = new Map()
@@ -128,6 +128,17 @@ async function seedDemo(client) {
         ($1,'data_use','2026-10',$2)`,
       [dbId, app.submittedAt],
     )
+  }
+
+  const demoGuardId = appIds.get('YG-APP-242858')
+  if (demoGuardId) {
+    for (const module of TRAINING_MODULES) {
+      await client.query(
+        `insert into training_attempts (application_id, module_id, answers, score, passed)
+         values ($1,$2,'[]',85,true)`,
+        [demoGuardId, module.id],
+      )
+    }
   }
 
   const password = 'yego-preview'

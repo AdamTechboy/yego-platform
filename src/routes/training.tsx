@@ -6,7 +6,7 @@ import { PublicShell } from '@/components/yego/site-shell'
 import { TRAINING_MODULES } from '@/lib/fixtures'
 
 export const Route = createFileRoute('/training')({
-  head: () => ({ meta: [{ title: 'Training Centre · YEGO' }] }),
+  head: () => ({ meta: [{ title: 'Training Dashboard · YEGO' }] }),
   component: TrainingPage,
 })
 
@@ -27,14 +27,16 @@ function TrainingPage() {
       <section className="bg-ink py-14 text-white md:py-20">
         <div className="mx-auto max-w-content px-4 sm:px-6">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider">
-            <GraduationCap className="size-3.5" /> Training Centre
+            <GraduationCap className="size-3.5" /> Training Dashboard
           </p>
           <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight md:text-5xl">
-            Learn the job before you stand at a polling unit.
+            YEGO National Training Centre
           </h1>
-          <p className="mt-4 max-w-2xl text-white/75">
-            Five modules, about {totalMinutes} minutes, built for a phone. Each module ends with a short assessment. Pass
-            all five to unlock certification and deployment.
+          <p className="mt-2 font-display text-xl font-bold text-accent">The Electoral Accountability Academy</p>
+          <p className="mt-3 max-w-2xl text-white/75">
+            Training Today’s Youth. Protecting Tomorrow’s Democracy. {TRAINING_MODULES.length} modules, about{' '}
+            {totalMinutes} minutes, built for a phone. Each module ends with a short assessment; pass all of them to
+            unlock certification and deployment readiness.
           </p>
           <div className="mt-8 flex flex-wrap gap-6 text-sm">
             <span className="flex items-center gap-2">
@@ -108,7 +110,7 @@ function TrainingPage() {
                   <li>1. Submit an application and confirm it on WhatsApp.</li>
                   <li>2. Your State desk reviews and screens the application.</li>
                   <li>3. Once approved, the modules appear in your Guard portal.</li>
-                  <li>4. Pass all five to complete training and become eligible for certification.</li>
+                  <li>4. Pass all modules to complete training and become eligible for certification.</li>
                 </ol>
                 <Button asChild className="mt-4 w-full">
                   <Link to="/apply">
@@ -139,6 +141,29 @@ function TrainingPage() {
               </div>
             </aside>
           </div>
+          <div className="mt-10 rounded-lg border bg-card p-5 md:p-6">
+            <p className="text-sm font-bold uppercase tracking-wider text-primary">Training and certification process</p>
+            <h3 className="mt-1 text-2xl font-black">Eight steps from application to coordination</h3>
+            <ol className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                ['Register', 'Complete the YEGO application form.'],
+                ['Screening', 'YEGO reviews the application and verifies identity and eligibility.'],
+                ['Enrolment', 'Approved applicants receive access to the Training Dashboard.'],
+                ['Training', 'Complete the required modules at your own pace on a phone.'],
+                ['Assessment', 'Take the module quizzes and the final assessment.'],
+                ['Certification', 'Meet the standard and receive a YEGO training certificate.'],
+                ['Deployment readiness', 'Complete briefing, role assignment and field checks.'],
+                ['Coordination', 'Linked to the relevant state and LGA coordination structure.'],
+              ].map(([title, body], index) => (
+                <li key={title} className="rounded-md border bg-background p-3">
+                  <span className="font-display text-xs font-black text-primary">0{index + 1}</span>
+                  <p className="mt-1 text-sm font-bold">{title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{body}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+
         </div>
       </section>
     </PublicShell>

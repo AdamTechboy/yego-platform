@@ -57,6 +57,7 @@ The client keeps a read cache in `src/lib/demo-store.ts`, hydrated by a single `
 - `getBootstrapFn`, `getNotificationsFn`
 - `loginCommandFn`, `loginGuardFn`, `logoutFn`
 - `submitApplicationFn`, `lookupApplicationFn`, `confirmWhatsAppFn`
+- `listPollingUnitsFn`
 - `submitIncidentFn`, `setIncidentStatusFn`, `addIncidentNoteFn`, `referIncidentFn`
 - `setApplicationStatusFn`, `assignPollingUnitFn`
 - `submitTrainingQuizFn`, `raiseWarningFn`, `checkInFn`
@@ -79,7 +80,7 @@ Migrations live in `db/migrations/`:
 | --- | --- |
 | `states` | 36 states + FCT, capital, zone, centroid, PU/ward totals |
 | `lgas` | 774 LGAs, foreign key to `states` |
-| `polling_units` | Official INEC polling units; intentionally empty until an authoritative import |
+| `polling_units` | INEC polling units imported with `pnpm db:import:pus` (176,834 rows locally) |
 
 ### Applications and onboarding
 
@@ -107,12 +108,12 @@ Migrations live in `db/migrations/`:
 | `incident_referrals` | Agency, approval actor, delivery status (`pending_manual` by default) |
 | `referral_events` | Referral lifecycle events |
 
-### Field operations
+### Field operations and curriculum
 
 | Table | Purpose |
 | --- | --- |
 | `early_warnings` | Guard/Command risk tips, level, access and location |
-| `training_attempts` | Quiz answers, score and pass state |
+| `training_attempts` | Quiz answers, score and pass state for the nine-module Electoral Accountability Academy |
 | `certificates` | Certification record and certificate number |
 | `check_ins` | Guard arrival at an assigned polling unit |
 | `announcements` | National, state and LGA messages (shared updates) |

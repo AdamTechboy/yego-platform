@@ -158,7 +158,7 @@ async function createSession(user: AuthUser): Promise<void> {
   setCookie(COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
     path: '/',
     maxAge: Math.floor(TTL_MS / 1000),
   })

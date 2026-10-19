@@ -21,8 +21,8 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { PublicShell } from '@/components/yego/site-shell'
-import { NEWS, STATE_COVERAGE } from '@/lib/fixtures'
-import { fmtDate, nf } from '@/lib/format'
+import { STATE_COVERAGE } from '@/lib/fixtures'
+import { nf } from '@/lib/format'
 import { TOTALS, ZONES } from '@/lib/nigeria'
 import { PARTNERS } from '@/lib/partners'
 
@@ -296,7 +296,7 @@ function Home() {
             />
             <div className="p-6 md:p-8">
               <BookOpenCheck className="size-8 text-primary" />
-              <h2 className="mt-4 text-2xl font-black">Training Centre</h2>
+              <h2 className="mt-4 text-2xl font-black">Training Dashboard</h2>
               <p className="mt-2 text-muted-foreground">
                 Videos, manuals, modules and quizzes on observer ethics, the Electoral Act 2022, early warning, evidence and data
                 protection, followed by assessment and certification.
@@ -311,25 +311,22 @@ function Home() {
         </div>
       </section>
 
-      {/* News */}
-      <section id="news" className="scroll-mt-20 border-t bg-card py-16 md:py-20">
-        <div className="mx-auto max-w-content px-4 sm:px-6">
-          <p className="text-sm font-bold uppercase tracking-wider text-primary">News & updates</p>
-          <h2 className="mt-2 text-3xl font-black">Latest from YEGO</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {NEWS.map((n) => (
-              <article key={n.id} className="flex flex-col rounded-lg border bg-background p-6">
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="rounded-full bg-secondary px-2 py-0.5 font-semibold text-secondary-foreground">{n.tag}</span>
-                  <time className="text-muted-foreground" dateTime={n.date}>
-                    {fmtDate(n.date)}
-                  </time>
-                </div>
-                <h3 className="mt-3 font-bold leading-snug">{n.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{n.excerpt}</p>
-              </article>
-            ))}
+      {/* News — headlines live on /news only */}
+      <section id="news" className="scroll-mt-20 border-t bg-card py-12 md:py-16">
+        <div className="mx-auto flex max-w-content flex-wrap items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="max-w-xl">
+            <p className="text-sm font-bold uppercase tracking-wider text-primary">News &amp; updates</p>
+            <h2 className="mt-2 text-3xl font-black">Engagements, partnerships and press coverage</h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Statements, media reports and partnership announcements are published on the YEGO news page. This keeps
+              the latest coverage in one place and every item linked to its original source.
+            </p>
           </div>
+          <Button asChild>
+            <Link to="/news">
+              Visit the news page <ArrowRight />
+            </Link>
+          </Button>
         </div>
       </section>
 

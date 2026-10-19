@@ -16,9 +16,10 @@ import { YegoLogo } from './logo'
 const NAV = [
   { href: '/#about', label: 'About' },
   { href: '/#how', label: 'How it works' },
+  { href: '/erart', label: 'ERART' },
   { href: '/map', label: 'Coverage map' },
   { href: '/training', label: 'Training' },
-  { href: '/#news', label: 'News' },
+  { href: '/news', label: 'News' },
   { href: '/#contact', label: 'Contact' },
 ]
 

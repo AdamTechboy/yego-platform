@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
   ArrowLeft,
@@ -19,9 +19,10 @@ import { Field, NativeSelect } from '@/components/yego/fields'
 import { PhotoCapture } from '@/components/yego/photo-capture'
 import { PublicShell } from '@/components/yego/site-shell'
 import { MAX_AGE, MIN_AGE, WHATSAPP_CHANNEL_URL } from '@/lib/config'
-import { confirmWhatsApp, submitApplication } from '@/lib/demo-store'
+import { confirmWhatsApp, listPollingUnits, submitApplication } from '@/lib/demo-store'
 import { PROFESSIONAL_BACKGROUNDS, type Application } from '@/lib/fixtures'
 import { STATES, getState } from '@/lib/nigeria'
+import { useWards } from '@/lib/wards'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/apply')({
@@ -30,6 +31,7 @@ export const Route = createFileRoute('/apply')({
 })
 
 const STEPS = ['Personal details', 'Location', 'Background', 'Photo & declaration'] as const
+const PU_DEFAULT = 'To be assigned by my coordinator'
 const STATE_NAMES = STATES.map((s) => s.name)
 
 const EMPTY = {
@@ -45,7 +47,7 @@ const EMPTY = {
   stateOfResidence: '',
   lga: '',
   ward: '',
-  pollingUnit: '',
+  pollingUnit: PU_DEFAULT,
   background: '',
   experience: '',
   photo: undefined as string | undefined,
@@ -83,7 +85,7 @@ function validate(step: number, f: FormState): Errors {
     if (!f.stateOfOrigin) e.stateOfOrigin = 'Select your state of origin.'
     if (!f.stateOfResidence) e.stateOfResidence = 'Select where you live now.'
     if (!f.lga) e.lga = 'Select your LGA.'
-    if (f.ward.trim().length < 2) e.ward = 'Enter your ward / registration area.'
+    if (f.ward.trim().length < 2) e.ward = 'Select your ward / registration area.'
   }
   if (step === 2) {
     if (!f.background) e.background = 'Select your background.'
@@ -104,12 +106,38 @@ function ApplyPage() {
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Application | null>(null)
   const [phoneForConfirmation, setPhoneForConfirmation] = useState('')
+  const wards = useWards()
+  const [pollingUnits, setPollingUnits] = useState<{ code: string; name: string; ward: string }[]>([])
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setF((p) => ({ ...p, [k]: v }))
     setErrors((p) => ({ ...p, [k]: undefined }))
   }
   const lgas = getState(f.stateOfResidence)?.lgas ?? []
+  const wardOptions = wards?.[f.stateOfResidence]?.[f.lga] ?? []
+
+  useEffect(() => {
+    if (!f.stateOfResidence || !f.lga || !f.ward) return
+    let active = true
+    listPollingUnits(f.stateOfResidence, f.lga, f.ward)
+      .then((rows) => {
+        if (active) setPollingUnits(rows)
+      })
+      .catch(() => {
+        if (active) setPollingUnits([])
+      })
+    return () => {
+      active = false
+    }
+  }, [f.stateOfResidence, f.lga, f.ward])
+
+  const pollingUnitOptions = [
+    PU_DEFAULT,
+    ...pollingUnits.map((unit) => {
+      const differentWard = unit.ward && unit.ward.toLowerCase() !== f.ward.toLowerCase()
+      return `${unit.code} — ${unit.name}${differentWard ? ` (${unit.ward})` : ''}`
+    }),
+  ]
 
   async function next() {
     const e = validate(step, f)
@@ -138,7 +166,7 @@ function ApplyPage() {
         stateOfResidence: f.stateOfResidence,
         lga: f.lga,
         ward: f.ward.trim(),
-        pollingUnit: f.pollingUnit.trim() || undefined,
+        pollingUnit: f.pollingUnit && f.pollingUnit !== PU_DEFAULT ? f.pollingUnit : undefined,
         background: f.background,
         experience: f.experience.trim(),
         photo: f.photo!,
@@ -230,18 +258,65 @@ function ApplyPage() {
                   onChange={(e) => {
                     set('stateOfResidence', e.target.value)
                     set('lga', '')
+                    set('ward', '')
+                    set('pollingUnit', PU_DEFAULT)
+                    setPollingUnits([])
                   }}
                   aria-invalid={!!errors.stateOfResidence}
                 />
               </Field>
               <Field label="Local Government Area" htmlFor="lga" error={errors.lga}>
-                <NativeSelect id="lga" placeholder={f.stateOfResidence ? `Select LGA (${lgas.length})` : 'Select state first'} disabled={!f.stateOfResidence} options={lgas} value={f.lga} onChange={(e) => set('lga', e.target.value)} aria-invalid={!!errors.lga} />
+                <NativeSelect
+                  id="lga"
+                  placeholder={f.stateOfResidence ? `Select LGA (${lgas.length})` : 'Select state first'}
+                  disabled={!f.stateOfResidence}
+                  options={lgas}
+                  value={f.lga}
+                  onChange={(e) => {
+                    set('lga', e.target.value)
+                    set('ward', '')
+                    set('pollingUnit', PU_DEFAULT)
+                    setPollingUnits([])
+                  }}
+                  aria-invalid={!!errors.lga}
+                />
               </Field>
-              <Field label="Ward / registration area" htmlFor="ward" error={errors.ward}>
-                <Input id="ward" value={f.ward} onChange={(e) => set('ward', e.target.value)} aria-invalid={!!errors.ward} />
+              <Field
+                label="Ward / registration area"
+                htmlFor="ward"
+                error={errors.ward}
+                hint={wards ? `${wardOptions.length} wards available in ${f.lga || 'this LGA'}` : 'Loading wards…'}
+              >
+                <NativeSelect
+                  id="ward"
+                  placeholder={!f.lga ? 'Select LGA first' : wards ? 'Select ward' : 'Loading wards…'}
+                  disabled={!f.lga || !wards}
+                  options={wardOptions}
+                  value={f.ward}
+                  onChange={(e) => {
+                    set('ward', e.target.value)
+                    set('pollingUnit', PU_DEFAULT)
+                    setPollingUnits([])
+                  }}
+                  aria-invalid={!!errors.ward}
+                />
               </Field>
-              <Field label="Preferred polling unit (optional)" htmlFor="pu" hint="Name or code from your voter’s card, e.g. “PU 012 – Gwagwarwa Pri. Sch.”. Final assignment is made by your coordinator." className="sm:col-span-2">
-                <Input id="pu" value={f.pollingUnit} onChange={(e) => set('pollingUnit', e.target.value)} />
+              <Field
+                label="Preferred polling unit (optional)"
+                htmlFor="pu"
+                hint={
+                  pollingUnits.length
+                    ? 'Official polling units for the selected ward or LGA.'
+                    : 'No official polling unit is imported for this ward yet. Your coordinator will assign one; you can still submit.'
+                }
+                className="sm:col-span-2"
+              >
+                <NativeSelect
+                  id="pu"
+                  options={pollingUnitOptions}
+                  value={f.pollingUnit || PU_DEFAULT}
+                  onChange={(e) => set('pollingUnit', e.target.value)}
+                />
               </Field>
             </div>
           )}
@@ -322,7 +397,12 @@ function Success({ app, phone }: { app: Application; phone: string }) {
         <div className="rounded-lg border bg-card p-6 text-center sm:p-10">
           <CheckCircle2 className="mx-auto size-14 text-primary" />
           <h1 className="mt-4 text-3xl font-black">Application received</h1>
-          <p className="mt-2 text-muted-foreground">Thank you, {app.fullName.split(' ')[0]}. Keep your Application ID safe. You need it to track your progress.</p>
+          <p className="mt-2 text-muted-foreground">
+            Thank you, {app.fullName.split(' ')[0]}. Keep your Application ID safe — you need it to track your progress.
+          </p>
+          <p className="mt-3 inline-flex items-center gap-2 rounded-full bg-accent/25 px-3 py-1 text-xs font-bold uppercase tracking-wider text-accent-foreground">
+            <MessageCircle className="size-3.5" /> Next step: join the YEGO community
+          </p>
           <div className="mx-auto mt-6 flex max-w-sm items-center justify-between gap-2 rounded-lg border-2 border-dashed border-primary bg-secondary px-4 py-3">
             <span className="font-mono text-xl font-bold tracking-wider">{app.id}</span>
             <Button
@@ -338,11 +418,12 @@ function Success({ app, phone }: { app: Application; phone: string }) {
             </Button>
           </div>
 
-          <div className="mt-8 rounded-lg bg-[#e7f8ee] p-5 text-left">
-            <p className="font-bold">Final step: confirm your application</p>
+          <div className="mt-8 rounded-lg border-2 border-[#25D366]/40 bg-[#e7f8ee] p-5 text-left">
+            <p className="text-xs font-bold uppercase tracking-wider text-[#0b6b3a]">Step 1 of 2 · Join the community</p>
+            <p className="mt-2 text-lg font-black">Your application is complete only after you join.</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Your application is only confirmed after you join the official YEGO WhatsApp Channel. All further instructions,
-              screening dates and training links are shared there.
+              Join the official YEGO WhatsApp community for confirmation, screening dates, training access and deployment
+              instructions. This is the only channel YEGO uses for applicant updates.
             </p>
             <Button
               asChild
@@ -357,15 +438,18 @@ function Success({ app, phone }: { app: Application; phone: string }) {
               }}
             >
               <a href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
-                <MessageCircle /> {confirmed ? 'Confirmed: open channel again' : 'Confirm on WhatsApp Channel'}
+                <MessageCircle /> {confirmed ? 'Confirmed — open the community again' : 'Join the YEGO community now'}
               </a>
             </Button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Step 2: keep your Application ID and track screening progress at any time.
+            </p>
           </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild variant="outline">
               <Link to="/status" search={{ id: app.id }}>
-                Track application status
+                Step 2: track application status
               </Link>
             </Button>
             <Button asChild variant="ghost">

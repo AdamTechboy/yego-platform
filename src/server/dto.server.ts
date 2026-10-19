@@ -132,6 +132,7 @@ function historyOf(rows: HistoryRow[]): AuditEntry[] {
 export interface ApplicationMapOptions {
   history?: HistoryRow[]
   maskSensitive?: boolean
+  assessmentScore?: number
 }
 
 export function mapApplication(row: ApplicationRow, options: ApplicationMapOptions = {}): Application {
@@ -158,6 +159,7 @@ export function mapApplication(row: ApplicationRow, options: ApplicationMapOptio
     submittedAt: iso(row.submitted_at),
     confirmedWhatsApp: !!row.whatsapp_confirmed_at,
     trainingProgress: row.training_progress,
+    assessmentScore: options.assessmentScore,
     history: historyOf(options.history ?? []),
   }
 }

@@ -87,6 +87,7 @@ export interface Application {
   submittedAt: string
   confirmedWhatsApp: boolean
   trainingProgress: number
+  assessmentScore?: number
   history: AuditEntry[]
 }
 
@@ -208,7 +209,7 @@ export const TRAINING_MODULES: TrainingModule[] = [
     id: 'm1',
     title: 'The YEGO Guard: role, ethics & non-partisanship',
     kind: 'Video',
-    minutes: 18,
+    minutes: 20,
     summary: 'What an observer does and does not do, the YEGO Code of Conduct, and staying impartial under pressure.',
     quiz: [
       { q: 'A party agent offers you transport money on election day. You should:', options: ['Accept it quietly', 'Decline and report it as an inducement attempt', 'Share it with other Guards'], answer: 1 },
@@ -230,7 +231,7 @@ export const TRAINING_MODULES: TrainingModule[] = [
     id: 'm3',
     title: 'Early warning: spotting risk before it becomes violence',
     kind: 'Module',
-    minutes: 20,
+    minutes: 22,
     summary: 'Indicators of tension, hate speech and mobilisation, and how to submit a verified early-warning tip.',
     quiz: [
       { q: 'Which is an early-warning indicator?', options: ['Large peaceful queue', 'Armed youths gathering near a polling unit', 'Officials arriving on time'], answer: 1 },
@@ -240,7 +241,7 @@ export const TRAINING_MODULES: TrainingModule[] = [
     id: 'm4',
     title: 'Reporting incidents accurately with evidence',
     kind: 'Video',
-    minutes: 15,
+    minutes: 20,
     summary: 'Where, what, when, evidence: using Election-Day Mode, capturing safe photos, and protecting yourself.',
     quiz: [
       { q: 'Your personal safety vs capturing evidence — which comes first?', options: ['Evidence', 'Personal safety'], answer: 1 },
@@ -250,28 +251,57 @@ export const TRAINING_MODULES: TrainingModule[] = [
     id: 'm5',
     title: 'Data protection & digital safety (NDPA 2023)',
     kind: 'Manual',
-    minutes: 12,
+    minutes: 24,
     summary: 'Handling personal and incident data responsibly under the Nigeria Data Protection Act 2023.',
     quiz: [
       { q: 'Can you post unverified incident photos to social media as a YEGO Guard?', options: ['Yes', 'No — report through the platform only'], answer: 1 },
     ],
   },
+  {
+    id: 'm6',
+    title: 'Digital reporting and the ERART platform',
+    kind: 'Module',
+    minutes: 25,
+    summary: 'Using the Early Warning & Rapid Response Tool to submit, document, share and track a report through verification.',
+    quiz: [
+      { q: 'Which platform is used to submit and document an incident?', options: ['ERART', 'A social media post', 'A phone call to a friend'], answer: 0 },
+      { q: 'What must happen before an incident is referred to an agency?', options: ['It must be verified', 'It must be posted online', 'It must be deleted'], answer: 0 },
+    ],
+  },
+  {
+    id: 'm7',
+    title: 'Coordination, escalation and agency protocols',
+    kind: 'Manual',
+    minutes: 20,
+    summary: 'Working with state and LGA coordinators, escalation paths, and the agencies that receive verified referrals.',
+    quiz: [
+      { q: 'Who should receive a verified incident referral?', options: ['Any social media user', 'The responsible agency through the referral workflow', 'A political party'], answer: 1 },
+    ],
+  },
+  {
+    id: 'm8',
+    title: 'Electoral Violence Prevention',
+    kind: 'Video',
+    minutes: 28,
+    summary: 'Recognising the drivers of electoral violence, de-escalation, safe reporting and community-level prevention.',
+    quiz: [
+      { q: 'Which action helps prevent electoral violence?', options: ['Spreading unverified rumours', 'Promoting peaceful participation and early reporting', 'Confronting political opponents'], answer: 1 },
+      { q: 'What should a Guard do if violence breaks out?', options: ['Record first', 'Move to safety and call 112, then report', 'Join the crowd'], answer: 1 },
+    ],
+  },
+  {
+    id: 'm9',
+    title: 'Field Preparedness and Practical Assessment',
+    kind: 'Module',
+    minutes: 30,
+    summary: 'A practical field-readiness assessment covering safety, reporting, check-in, evidence and coordination.',
+    quiz: [
+      { q: 'What is the first priority during field reporting?', options: ['Personal safety', 'Capturing the perfect photo', 'Confronting the offender'], answer: 0 },
+      { q: 'Which evidence is required before submitting a report?', options: ['A photo or video is mandatory', 'Evidence is optional; a report can be submitted without it', 'Only a witness statement'], answer: 1 },
+    ],
+  },
 ]
 
-export const NEWS = [
-  { id: 'n1', date: '2026-10-14', tag: 'Recruitment', title: 'YEGO opens national recruitment of youth Guards across all 774 LGAs', excerpt: 'Young Nigerians aged 18–35 can now apply online to observe and safeguard the electoral process in their communities.' },
-  { id: 'n2', date: '2026-10-09', tag: 'Training', title: 'Training Centre goes live with five foundation modules', excerpt: 'Applicants who clear screening can complete video lessons, manuals and assessments from their phones.' },
-  { id: 'n3', date: '2026-10-02', tag: 'Partnership', title: 'YEGO convenes civil society roundtable on election-violence early warning', excerpt: 'Partners agreed a shared escalation protocol for threats against voters, observers and electoral officials.' },
-]
-
-export const PARTNER_CATEGORIES = [
-  'Electoral management bodies',
-  'Security agencies (via ICCES)',
-  'Civil society & observer networks',
-  'Youth & student associations',
-  'Development partners',
-  'Media & fact-checkers',
-]
 
 export const PROFESSIONAL_BACKGROUNDS = [
   'Student (tertiary)',

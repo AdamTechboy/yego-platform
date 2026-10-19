@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as CommandRouteImport } from './routes/command'
+import { Route as ErartRouteImport } from './routes/erart'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as NewsRouteImport } from './routes/news'
 import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as StatusRouteImport } from './routes/status'
@@ -34,6 +36,11 @@ const CommandRoute = CommandRouteImport.update({
   path: '/command',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ErartRoute = ErartRouteImport.update({
+  id: '/erart',
+  path: '/erart',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -42,6 +49,11 @@ const LoginRoute = LoginRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewsRoute = NewsRouteImport.update({
+  id: '/news',
+  path: '/news',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PartnersRoute = PartnersRouteImport.update({
@@ -69,8 +81,10 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
+  '/erart': typeof ErartRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/news': typeof NewsRoute
   '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
@@ -80,8 +94,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
+  '/erart': typeof ErartRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/news': typeof NewsRoute
   '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
@@ -92,8 +108,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
+  '/erart': typeof ErartRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/news': typeof NewsRoute
   '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
@@ -105,8 +123,10 @@ export interface FileRouteTypes {
     | '/'
     | '/apply'
     | '/command'
+    | '/erart'
     | '/login'
     | '/map'
+    | '/news'
     | '/partners'
     | '/portal'
     | '/status'
@@ -116,8 +136,10 @@ export interface FileRouteTypes {
     | '/'
     | '/apply'
     | '/command'
+    | '/erart'
     | '/login'
     | '/map'
+    | '/news'
     | '/partners'
     | '/portal'
     | '/status'
@@ -127,8 +149,10 @@ export interface FileRouteTypes {
     | '/'
     | '/apply'
     | '/command'
+    | '/erart'
     | '/login'
     | '/map'
+    | '/news'
     | '/partners'
     | '/portal'
     | '/status'
@@ -139,8 +163,10 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApplyRoute: typeof ApplyRoute
   CommandRoute: typeof CommandRoute
+  ErartRoute: typeof ErartRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
+  NewsRoute: typeof NewsRoute
   PartnersRoute: typeof PartnersRoute
   PortalRoute: typeof PortalRoute
   StatusRoute: typeof StatusRoute
@@ -170,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CommandRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/erart': {
+      id: '/erart'
+      path: '/erart'
+      fullPath: '/erart'
+      preLoaderRoute: typeof ErartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -182,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/news': {
+      id: '/news'
+      path: '/news'
+      fullPath: '/news'
+      preLoaderRoute: typeof NewsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/partners': {
@@ -219,8 +259,10 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApplyRoute: ApplyRoute,
   CommandRoute: CommandRoute,
+  ErartRoute: ErartRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
+  NewsRoute: NewsRoute,
   PartnersRoute: PartnersRoute,
   PortalRoute: PortalRoute,
   StatusRoute: StatusRoute,

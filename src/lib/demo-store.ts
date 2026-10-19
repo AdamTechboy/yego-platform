@@ -21,6 +21,7 @@ import {
   confirmWhatsAppFn,
   getBootstrapFn,
   getNotificationsFn,
+  listPollingUnitsFn,
   loginCommandFn,
   loginGuardFn,
   logoutFn,
@@ -297,6 +298,10 @@ export async function postAnnouncement(input: {
 export async function checkIn(lat?: number, lng?: number): Promise<void> {
   await checkInFn({ data: { lat, lng } })
   await refresh()
+}
+
+export async function listPollingUnits(state: string, lga: string, ward: string) {
+  return listPollingUnitsFn({ data: { state, lga, ward } })
 }
 
 /* Notifications ----------------------------------------------------------- */

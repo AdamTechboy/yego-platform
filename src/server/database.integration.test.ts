@@ -193,7 +193,7 @@ describe('applications', () => {
 
     const correct = await submitTrainingQuiz(guard, { moduleId: 'm1', answers: [1, 1] })
     expect(correct.passed).toBe(true)
-    expect(correct.progress).toBe(20)
+    expect(correct.progress).toBe(11)
   })
 })
 

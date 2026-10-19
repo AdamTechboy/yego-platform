@@ -169,11 +169,25 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
   ).rows
 
   const guardPublicId = isGuardUser ? applications[0]?.public_id : undefined
+  let assessmentScore: number | undefined
+  if (isGuardUser && applications[0]) {
+    const scores = await query<{ score: number }>(
+      'select max(score)::int as score from training_attempts where application_id = $1 group by module_id',
+      [applications[0].id],
+    )
+    if (scores.rows.length) {
+      assessmentScore = Math.round(scores.rows.reduce((sum, row) => sum + Number(row.score), 0) / scores.rows.length)
+    }
+  }
 
   return {
     session: sessionDto(user, guardPublicId),
     applications: applications.map((row) =>
-      mapApplication(row, { history: historyByApplication.get(row.id) ?? [], maskSensitive: masked }),
+      mapApplication(row, {
+        history: historyByApplication.get(row.id) ?? [],
+        maskSensitive: masked,
+        assessmentScore: isGuardUser && row.id === applications[0]?.id ? assessmentScore : undefined,
+      }),
     ),
     incidents: incidents.map((row) =>
       mapIncident(row, {
@@ -837,3 +851,24 @@ export async function checkIn(user: AuthUser, lat?: number, lng?: number) {
 }
 
 export { EMPTY }
+
+export async function listPollingUnits(state: string, lga: string, ward: string) {
+  const stateRow = STATES.find((item) => item.name === state)
+  if (!stateRow) return [] as { code: string; name: string; ward: string }[]
+
+  const exact = await query<{ code: string; name: string; ward: string }>(
+    `select code, name, ward from polling_units
+     where state_code = $1 and lower(lga) = lower($2) and lower(ward) = lower($3)
+     order by code limit 500`,
+    [stateRow.code, lga, ward],
+  )
+  if (exact.rows.length) return exact.rows
+
+  const fallback = await query<{ code: string; name: string; ward: string }>(
+    `select code, name, ward from polling_units
+     where state_code = $1 and lower(lga) = lower($2)
+     order by ward, code limit 500`,
+    [stateRow.code, lga],
+  )
+  return fallback.rows
+}

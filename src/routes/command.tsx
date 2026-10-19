@@ -20,7 +20,7 @@ import { can, type Capability } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 const VIEWS = [
-  { id: 'overview', label: 'Dashboard', icon: BarChart3, cap: 'view:analytics' },
+  { id: 'overview', label: 'ERART Dashboard', icon: BarChart3, cap: 'view:analytics' },
   { id: 'incidents', label: 'Incidents', icon: ShieldAlert, cap: 'view:incidents' },
   { id: 'applicants', label: 'Guards & screening', icon: Users, cap: 'screen:applicants' },
   { id: 'updates', label: 'Shared updates', icon: Megaphone, cap: 'view:analytics' },
@@ -110,6 +110,7 @@ function CommandPage() {
           <div>
             <h1 className="text-xl font-black">{current.label}</h1>
             <p className="text-xs text-muted-foreground">
+              {current.id === 'overview' ? 'ERART · Early Warning & Rapid Response Tool · ' : ''}
               {session.role} · {lockedState ? `${lockedState} State only` : session.scope}
             </p>
           </div>

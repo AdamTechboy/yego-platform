@@ -16,6 +16,7 @@ The only browser storage used by the application is TanStack Router’s in-memor
 pnpm install
 pnpm db:migrate          # create/upgrade the schema
 pnpm db:seed:demo        # reference data + development demo records
+pnpm db:import:pus       # import the INEC polling-unit register (optional but needed for PU selects)
 pnpm dev                 # http://localhost:3000
 ```
 
@@ -98,7 +99,20 @@ Copy `.env.example` to `.env` for local overrides. Names only:
 
 Never commit `.env` or production credentials.
 
+## Public pages
+
+- `/` — recruitment homepage and links.
+- `/apply` — four-step application with cascading state → LGA → ward → polling-unit selects.
+- `/status` — application tracking with Application ID + phone.
+- `/erart` — ERART (Early Warning & Rapid Response Tool) dashboard overview.
+- `/news` — announcements, partnerships and press coverage. News is kept off other pages.
+- `/training` — Training Dashboard for the Electoral Accountability Academy.
+- `/map` — Google Maps coverage map.
+- `/partners` — strategic partners and contact details.
+
 ## Google Maps
+
+`/erart` explains the Early Warning & Rapid Response Tool. `/news` carries the supplied engagements, partnerships and press coverage. `/training` is the Training Dashboard for the Electoral Accountability Academy.
 
 `/map` uses Google Maps embeds. With `VITE_GOOGLE_MAPS_API_KEY` set, it uses the official Embed API; without a key it uses the keyless Google Maps embed. “Open in Google Maps” links are available for every state, and incident records link to their coordinates.
 
@@ -116,6 +130,7 @@ Never commit `.env` or production credentials.
 | `pnpm db:seed` | Reference geography only |
 | `pnpm db:seed:demo` | Development demo data |
 | `pnpm db:seed:reset` | Reset and reseed demo data |
+| `pnpm db:import:pus` | Import/refresh the INEC polling-unit register |
 | `pnpm db:create-admin` | Bootstrap a Super Administrator |
 
 ## Project structure
@@ -129,6 +144,10 @@ src/lib/                domain types, permissions, reference data, server-backed
 src/server/             db, auth, scope, validation, repository and server functions
 docs/                   architecture, implementation report and existing notes
 ```
+
+## SmartWeb hosting
+
+A standalone Node server is included for SmartWeb/cPanel: `server.mjs` and `app.js`, with the production build in `dist/`. See [deploy/smartweb/README.md](deploy/smartweb/README.md) for Node 22+, PostgreSQL, cPanel startup, environment and domain/SSL instructions.
 
 ## Status
 

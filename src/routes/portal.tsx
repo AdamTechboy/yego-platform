@@ -10,6 +10,7 @@ import {
   LogOut,
   MapPin,
   Megaphone,
+  MessageCircle,
   Radio,
   Send,
 } from 'lucide-react'
@@ -31,13 +32,14 @@ import {
   SeverityBadge,
 } from '@/components/yego/status'
 import { ApplicationTracker } from '@/components/yego/tracker'
-import { checkIn, raiseWarning, signOut, useDB } from '@/lib/demo-store'
+import { checkIn, confirmWhatsApp, raiseWarning, signOut, useDB } from '@/lib/demo-store'
 import {
   EARLY_WARNING_TYPES,
   INCIDENT_STAGES,
   type Announcement,
   type Application,
 } from '@/lib/fixtures'
+import { WHATSAPP_CHANNEL_URL } from '@/lib/config'
 import { fmtDateTime, nf, timeAgo } from '@/lib/format'
 import { getState } from '@/lib/nigeria'
 import { cn } from '@/lib/utils'
@@ -94,6 +96,27 @@ function PortalPage() {
       </header>
 
       <main className="mx-auto max-w-content space-y-6 px-4 py-6 sm:px-6">
+        {!app.confirmedWhatsApp && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#25D366]/50 bg-[#e7f8ee] p-4">
+            <div>
+              <p className="font-bold">Join the YEGO community to confirm your place</p>
+              <p className="text-sm text-muted-foreground">
+                Screening dates, training access and deployment instructions are shared in the WhatsApp community.
+              </p>
+            </div>
+            <Button
+              asChild
+              className="bg-[#25D366] text-[#073b1c] hover:bg-[#25D366]/90"
+              onClick={() => {
+                void confirmWhatsApp(app.id, app.phone || '').catch(() => {})
+              }}
+            >
+              <a href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="size-4" /> Join now
+              </a>
+            </Button>
+          </div>
+        )}
         <ProfileCard app={app} />
         {active ? <GuardWorkspace app={app} /> : <ApplicantWorkspace app={app} />}
       </main>
@@ -170,7 +193,7 @@ function ApplicantWorkspace({ app }: { app: Application }) {
       </section>
       <section className="space-y-3 lg:col-span-2">
         <h2 className="flex items-center gap-2 font-black">
-          <GraduationCap className="size-5 text-primary" /> Training Centre
+          <GraduationCap className="size-5 text-primary" /> Training Dashboard
         </h2>
         <TrainingCentre app={app} />
       </section>
@@ -219,7 +242,7 @@ function GuardWorkspace({ app }: { app: Application }) {
           <ClipboardList /> My reports ({mine.length})
         </TabsTrigger>
         <TabsTrigger value="training" className="flex-none">
-          <GraduationCap /> Training
+          <GraduationCap /> Training Dashboard
         </TabsTrigger>
       </TabsList>
 
