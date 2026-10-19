@@ -3,24 +3,27 @@ import {
   BarChart3,
   Lock,
   LogOut,
-  RotateCcw,
+  Megaphone,
   ShieldAlert,
   Users,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { ApplicantsView } from '@/components/command/applicants'
+import { CommandNotifications } from '@/components/command/notifications'
 import { IncidentsView } from '@/components/command/incidents'
 import { OverviewView } from '@/components/command/overview'
+import { UpdatesView } from '@/components/command/updates'
 import { YegoLogo } from '@/components/yego/logo'
-import { resetPreviewData, signOut, useDB } from '@/lib/demo-store'
+import { signOut, useDB } from '@/lib/demo-store'
 import { can, type Capability } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 
 const VIEWS = [
   { id: 'overview', label: 'Dashboard', icon: BarChart3, cap: 'view:analytics' },
-  { id: 'incidents', label: 'Incidents', icon: ShieldAlert, cap: 'view:analytics' },
+  { id: 'incidents', label: 'Incidents', icon: ShieldAlert, cap: 'view:incidents' },
   { id: 'applicants', label: 'Guards & screening', icon: Users, cap: 'screen:applicants' },
+  { id: 'updates', label: 'Shared updates', icon: Megaphone, cap: 'view:analytics' },
 ] as const satisfies readonly { id: string; label: string; icon: unknown; cap: Capability }[]
 
 type ViewId = (typeof VIEWS)[number]['id']
@@ -93,14 +96,10 @@ function CommandPage() {
               variant="ghost"
               className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-white"
               onClick={() => {
-                signOut()
-                void navigate({ to: '/login' })
+                void signOut().then(() => navigate({ to: '/login' }))
               }}
             >
               <LogOut /> Sign out
-            </Button>
-            <Button size="icon-sm" variant="ghost" className="text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-white" aria-label="Reset preview data" title="Reset preview data" onClick={resetPreviewData}>
-              <RotateCcw />
             </Button>
           </div>
         </div>
@@ -114,22 +113,25 @@ function CommandPage() {
               {session.role} · {lockedState ? `${lockedState} State only` : session.scope}
             </p>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="lg:hidden"
-            onClick={() => {
-              signOut()
-              void navigate({ to: '/login' })
-            }}
-          >
-            <LogOut /> Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            <CommandNotifications />
+            <Button
+              size="sm"
+              variant="outline"
+              className="lg:hidden"
+              onClick={() => {
+                void signOut().then(() => navigate({ to: '/login' }))
+              }}
+            >
+              <LogOut /> Sign out
+            </Button>
+          </div>
         </div>
         <div className="p-4 sm:p-6">
           {current.id === 'overview' && <OverviewView lockedState={lockedState} />}
           {current.id === 'incidents' && <IncidentsView lockedState={lockedState} />}
           {current.id === 'applicants' && <ApplicantsView lockedState={lockedState} />}
+          {current.id === 'updates' && <UpdatesView />}
         </div>
       </main>
     </div>

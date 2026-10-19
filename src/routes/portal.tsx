@@ -31,7 +31,7 @@ import {
   SeverityBadge,
 } from '@/components/yego/status'
 import { ApplicationTracker } from '@/components/yego/tracker'
-import { raiseWarning, signOut, useDB } from '@/lib/demo-store'
+import { checkIn, raiseWarning, signOut, useDB } from '@/lib/demo-store'
 import {
   EARLY_WARNING_TYPES,
   INCIDENT_STAGES,
@@ -84,8 +84,7 @@ function PortalPage() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                signOut()
-                void navigate({ to: '/login' })
+                void signOut().then(() => navigate({ to: '/login' }))
               }}
             >
               <LogOut /> Sign out
@@ -258,8 +257,14 @@ function GuardWorkspace({ app }: { app: Application }) {
                 className="mt-4 w-full"
                 variant={checkedIn ? 'secondary' : 'default'}
                 onClick={() => {
-                  setCheckedIn(true)
-                  toast.success('Checked in. Your coordinator can see you are on duty.')
+                  void checkIn()
+                    .then(() => {
+                      setCheckedIn(true)
+                      toast.success('Checked in. Your coordinator can see you are on duty.')
+                    })
+                    .catch((error: unknown) =>
+                      toast.error(error instanceof Error ? error.message : 'Could not check in.'),
+                    )
                 }}
               >
                 <CheckCircle2 /> {checkedIn ? 'Checked in' : 'Check in on arrival'}
@@ -286,7 +291,7 @@ function GuardWorkspace({ app }: { app: Application }) {
       </TabsContent>
 
       <TabsContent value="warn" className="mt-4">
-        <WarningTip app={app} />
+        <WarningTip />
       </TabsContent>
 
       <TabsContent value="msgs" className="mt-4">
@@ -331,34 +336,33 @@ function GuardWorkspace({ app }: { app: Application }) {
   )
 }
 
-function WarningTip({ app }: { app: Application }) {
-  const st = getState(app.stateOfResidence)
+function WarningTip() {
   const [type, setType] = useState('')
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [files, setFiles] = useState(0)
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!type || title.trim().length < 4 || summary.trim().length < 10) return toast.error('Add a type, a title and a short description.')
-    raiseWarning({
-      type,
-      title: title.trim(),
-      summary: summary.trim(),
-      state: app.stateOfResidence,
-      lga: app.lga,
-      level: 'Watch',
-      access: 'Command only',
-      raisedBy: `Guard ${app.yegoId}`,
-      evidence: files,
-      lat: (st?.lat ?? 9) + (Math.random() - 0.5) * 0.1,
-      lng: (st?.lng ?? 8) + (Math.random() - 0.5) * 0.1,
-    })
-    setType('')
-    setTitle('')
-    setSummary('')
-    setFiles(0)
-    toast.success('Early-warning tip sent confidentially to Command.')
+    if (!type || title.trim().length < 4 || summary.trim().length < 10) {
+      toast.error('Add a type, a title and a short description.')
+      return
+    }
+    try {
+      await raiseWarning({
+        type,
+        title: title.trim(),
+        summary: summary.trim(),
+        evidenceCount: files,
+      })
+      setType('')
+      setTitle('')
+      setSummary('')
+      setFiles(0)
+      toast.success('Early-warning tip sent confidentially to Command.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send the tip.')
+    }
   }
 
   return (

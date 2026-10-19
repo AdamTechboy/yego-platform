@@ -125,6 +125,7 @@ export function SiteFooter() {
             <li><Link className="hover:underline" to="/apply">Apply to become a Guard</Link></li>
             <li><Link className="hover:underline" to="/status">Check application status</Link></li>
             <li><Link className="hover:underline" to="/map">Coverage map</Link></li>
+            <li><Link className="hover:underline" to="/partners">Partners</Link></li>
             <li><Link className="hover:underline" to="/training">Training Centre</Link></li>
             <li><Link className="hover:underline" to="/login">Guard & Command login</Link></li>
           </ul>

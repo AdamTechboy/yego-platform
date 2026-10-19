@@ -13,8 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApplyRouteImport } from './routes/apply'
 import { Route as CommandRouteImport } from './routes/command'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as PartnersRouteImport } from './routes/partners'
 import { Route as PortalRouteImport } from './routes/portal'
 import { Route as StatusRouteImport } from './routes/status'
+import { Route as TrainingRouteImport } from './routes/training'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,6 +39,16 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PartnersRoute = PartnersRouteImport.update({
+  id: '/partners',
+  path: '/partners',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
   path: '/portal',
@@ -46,22 +59,33 @@ const StatusRoute = StatusRouteImport.update({
   path: '/status',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TrainingRoute = TrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
+  '/training': typeof TrainingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
+  '/training': typeof TrainingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,16 +93,46 @@ export interface FileRoutesById {
   '/apply': typeof ApplyRoute
   '/command': typeof CommandRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/partners': typeof PartnersRoute
   '/portal': typeof PortalRoute
   '/status': typeof StatusRoute
+  '/training': typeof TrainingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/apply' | '/command' | '/login' | '/portal' | '/status'
+  fullPaths:
+    | '/'
+    | '/apply'
+    | '/command'
+    | '/login'
+    | '/map'
+    | '/partners'
+    | '/portal'
+    | '/status'
+    | '/training'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/apply' | '/command' | '/login' | '/portal' | '/status'
+  to:
+    | '/'
+    | '/apply'
+    | '/command'
+    | '/login'
+    | '/map'
+    | '/partners'
+    | '/portal'
+    | '/status'
+    | '/training'
   id:
-    '__root__' | '/' | '/apply' | '/command' | '/login' | '/portal' | '/status'
+    | '__root__'
+    | '/'
+    | '/apply'
+    | '/command'
+    | '/login'
+    | '/map'
+    | '/partners'
+    | '/portal'
+    | '/status'
+    | '/training'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -86,8 +140,11 @@ export interface RootRouteChildren {
   ApplyRoute: typeof ApplyRoute
   CommandRoute: typeof CommandRoute
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
+  PartnersRoute: typeof PartnersRoute
   PortalRoute: typeof PortalRoute
   StatusRoute: typeof StatusRoute
+  TrainingRoute: typeof TrainingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -120,6 +177,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/partners': {
+      id: '/partners'
+      path: '/partners'
+      fullPath: '/partners'
+      preLoaderRoute: typeof PartnersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/portal': {
       id: '/portal'
       path: '/portal'
@@ -134,6 +205,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StatusRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/training': {
+      id: '/training'
+      path: '/training'
+      fullPath: '/training'
+      preLoaderRoute: typeof TrainingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -142,8 +220,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApplyRoute: ApplyRoute,
   CommandRoute: CommandRoute,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
+  PartnersRoute: PartnersRoute,
   PortalRoute: PortalRoute,
   StatusRoute: StatusRoute,
+  TrainingRoute: TrainingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

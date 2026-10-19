@@ -115,17 +115,38 @@ export function IncidentsView({ lockedState }: { lockedState?: string }) {
 }
 
 function IncidentDetail({ inc }: { inc: Incident }) {
-  const { role, by } = useActor()
+  const { role } = useActor()
   const canVerify = can(role, 'verify:incidents')
   const canRefer = can(role, 'refer:incidents')
   const [category, setCategory] = useState(inc.category ?? '')
   const [note, setNote] = useState('')
   const [referOpen, setReferOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
 
-  const act = (s: Incident['status'], msg: string) => {
-    setIncidentStatus(inc.id, s, by, note.trim() || undefined, category || undefined)
-    setNote('')
-    toast.success(msg)
+  async function act(s: Incident['status'], msg: string) {
+    setBusy(true)
+    try {
+      await setIncidentStatus(inc.id, s, note.trim() || undefined, category || undefined)
+      setNote('')
+      toast.success(msg)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not update the incident.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function requestClarification() {
+    setBusy(true)
+    try {
+      await addIncidentNote(inc.id, 'Clarification requested', note.trim() || 'Reporter asked for more detail.')
+      setNote('')
+      toast.success(`Clarification request sent to ${inc.reporter}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not request clarification.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -213,14 +234,14 @@ function IncidentDetail({ inc }: { inc: Incident }) {
               <Textarea className="mt-1 min-h-9" rows={1} value={note} onChange={(e) => setNote(e.target.value)} />
             </label>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className={cn('flex flex-wrap gap-2', busy && 'pointer-events-none opacity-60')}>
             {canVerify && inc.status === 'Reported' && (
-              <Button size="sm" variant="secondary" onClick={() => act('Received', 'Marked as received')}>
+              <Button size="sm" variant="secondary" onClick={() => void act('Received', 'Marked as received')}>
                 Acknowledge receipt
               </Button>
             )}
             {canVerify && ['Reported', 'Received'].includes(inc.status) && (
-              <Button size="sm" variant="secondary" onClick={() => act('Under Review', 'Review started')}>
+              <Button size="sm" variant="secondary" onClick={() => void act('Under Review', 'Review started')}>
                 Start review
               </Button>
             )}
@@ -228,22 +249,18 @@ function IncidentDetail({ inc }: { inc: Incident }) {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  addIncidentNote(inc.id, by, 'Clarification requested', note.trim() || 'Reporter asked for more detail.')
-                  setNote('')
-                  toast.success(`Clarification request sent to ${inc.reporter}`)
-                }}
+                onClick={() => void requestClarification()}
               >
                 <HelpCircle /> Request clarification
               </Button>
             )}
             {canVerify && ['Reported', 'Received', 'Under Review', 'Unverified'].includes(inc.status) && (
-              <Button size="sm" onClick={() => act('Verified', 'Incident verified')}>
+              <Button size="sm" onClick={() => void act('Verified', 'Incident verified')}>
                 <CheckCircle2 /> Verify
               </Button>
             )}
             {canVerify && ['Reported', 'Received', 'Under Review'].includes(inc.status) && (
-              <Button size="sm" variant="outline" onClick={() => act('Unverified', 'Marked unverified')}>
+              <Button size="sm" variant="outline" onClick={() => void act('Unverified', 'Marked unverified')}>
                 <XCircle /> Unverified
               </Button>
             )}
@@ -253,7 +270,7 @@ function IncidentDetail({ inc }: { inc: Incident }) {
               </Button>
             )}
             {canVerify && inc.status !== 'Closed' && ['Verified', 'Unverified', 'Referred/Actioned'].includes(inc.status) && (
-              <Button size="sm" variant="ghost" onClick={() => act('Closed', 'Case closed')}>
+              <Button size="sm" variant="ghost" onClick={() => void act('Closed', 'Case closed')}>
                 Close case
               </Button>
             )}
@@ -282,14 +299,15 @@ function IncidentDetail({ inc }: { inc: Incident }) {
         </ol>
       </section>
 
-      <ReferDialog inc={inc} open={referOpen} onOpenChange={setReferOpen} by={by} />
+      <ReferDialog inc={inc} open={referOpen} onOpenChange={setReferOpen} />
     </article>
   )
 }
 
-function ReferDialog({ inc, open, onOpenChange, by }: { inc: Incident; open: boolean; onOpenChange: (o: boolean) => void; by: string }) {
+function ReferDialog({ inc, open, onOpenChange }: { inc: Incident; open: boolean; onOpenChange: (o: boolean) => void }) {
   const [picked, setPicked] = useState<string[]>([])
   const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
   const toggle = (c: string) => setPicked((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))
 
   return (
@@ -327,13 +345,20 @@ function ReferDialog({ inc, open, onOpenChange, by }: { inc: Incident; open: boo
             Cancel
           </Button>
           <Button
-            disabled={!picked.length}
+            disabled={!picked.length || busy}
             onClick={() => {
-              referIncident(inc.id, picked, by, note.trim() || undefined)
-              toast.success(`Forwarded to ${picked.join(', ')}`)
-              setPicked([])
-              setNote('')
-              onOpenChange(false)
+              setBusy(true)
+              void referIncident(inc.id, picked, note.trim() || undefined)
+                .then(() => {
+                  toast.success(`Referral recorded for ${picked.join(', ')}`)
+                  setPicked([])
+                  setNote('')
+                  onOpenChange(false)
+                })
+                .catch((error: unknown) =>
+                  toast.error(error instanceof Error ? error.message : 'Could not record the referral.'),
+                )
+                .finally(() => setBusy(false))
             }}
           >
             <Forward /> Forward to {picked.length || ''} {picked.length === 1 ? 'agency' : 'agencies'}

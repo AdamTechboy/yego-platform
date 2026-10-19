@@ -133,10 +133,11 @@ export function ApplicantsView({ lockedState }: { lockedState?: string }) {
 }
 
 function ApplicantProfile({ app }: { app: Application }) {
-  const { role, by } = useActor()
+  const { role } = useActor()
   const [note, setNote] = useState('')
   const [ward, setWard] = useState(app.ward)
   const [pu, setPu] = useState(app.pollingUnit)
+  const [busy, setBusy] = useState(false)
   const idx = APPLICATION_STAGES.indexOf(app.status as (typeof APPLICATION_STAGES)[number])
   const next = idx >= 0 && idx < APPLICATION_STAGES.length - 1 ? APPLICATION_STAGES[idx + 1] : undefined
   const nextNeedsApproval = next && APPLICATION_STAGES.indexOf(next) >= APPLICATION_STAGES.indexOf('Approved')
@@ -199,10 +200,18 @@ function ApplicantProfile({ app }: { app: Application }) {
             {next && canAdvance && (
               <Button
                 size="sm"
+                disabled={busy}
                 onClick={() => {
-                  setApplicationStatus(app.id, next, by, note.trim() || undefined)
-                  setNote('')
-                  toast.success(`${app.fullName.split(' ')[0]} moved to “${next}”. Their dashboard is updated.`)
+                  setBusy(true)
+                  void setApplicationStatus(app.id, next, note.trim() || undefined)
+                    .then(() => {
+                      setNote('')
+                      toast.success(`${app.fullName.split(' ')[0]} moved to “${next}”. Their dashboard is updated.`)
+                    })
+                    .catch((error: unknown) =>
+                      toast.error(error instanceof Error ? error.message : 'Could not update the application.'),
+                    )
+                    .finally(() => setBusy(false))
                 }}
               >
                 Move to {next} <ArrowRight />
@@ -219,8 +228,13 @@ function ApplicantProfile({ app }: { app: Application }) {
                 variant="outline"
                 className="text-destructive"
                 onClick={() => {
-                  setApplicationStatus(app.id, 'Not Approved', by, note.trim() || undefined)
-                  toast.success('Application marked Not Approved')
+                  setBusy(true)
+                  void setApplicationStatus(app.id, 'Not Approved', note.trim() || undefined)
+                    .then(() => toast.success('Application marked Not Approved'))
+                    .catch((error: unknown) =>
+                      toast.error(error instanceof Error ? error.message : 'Could not update the application.'),
+                    )
+                    .finally(() => setBusy(false))
                 }}
               >
                 <Ban /> Not approve
@@ -240,10 +254,15 @@ function ApplicantProfile({ app }: { app: Application }) {
           <Button
             size="sm"
             variant="secondary"
-            disabled={!canAssign || (ward === app.ward && pu === app.pollingUnit)}
+            disabled={busy || !canAssign || (ward === app.ward && pu === app.pollingUnit)}
             onClick={() => {
-              assignPollingUnit(app.id, ward.trim(), pu.trim(), by)
-              toast.success('Polling unit assigned')
+              setBusy(true)
+              void assignPollingUnit(app.id, ward.trim(), pu.trim())
+                .then(() => toast.success('Polling unit assigned'))
+                .catch((error: unknown) =>
+                  toast.error(error instanceof Error ? error.message : 'Could not assign the polling unit.'),
+                )
+                .finally(() => setBusy(false))
             }}
           >
             Save assignment

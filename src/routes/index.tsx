@@ -17,14 +17,14 @@ import {
   ShieldCheck,
   Smartphone,
   UserPlus,
-  Users,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { PublicShell } from '@/components/yego/site-shell'
-import { NEWS, PARTNER_CATEGORIES, STATE_COVERAGE } from '@/lib/fixtures'
+import { NEWS, STATE_COVERAGE } from '@/lib/fixtures'
 import { fmtDate, nf } from '@/lib/format'
 import { TOTALS, ZONES } from '@/lib/nigeria'
+import { PARTNERS } from '@/lib/partners'
 
 export const Route = createFileRoute('/')({
   component: Home,
@@ -334,24 +334,37 @@ function Home() {
       </section>
 
       {/* Partners */}
-      <section id="partners" className="scroll-mt-20 py-16 md:py-20">
+      <section id="partners" className="scroll-mt-20 border-t bg-card py-16 md:py-20">
         <div className="mx-auto max-w-content px-4 sm:px-6">
-          <div className="grid gap-8 lg:grid-cols-3">
-            <div>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="max-w-xl">
               <p className="text-sm font-bold uppercase tracking-wider text-primary">Partners</p>
               <h2 className="mt-2 text-3xl font-black">Working with institutions that protect elections</h2>
               <p className="mt-3 text-sm text-muted-foreground">
-                YEGO works alongside electoral, security, civic and media stakeholders. Partner logos are shown once formal
-                agreements are in place.
+                Ten strategic partners spanning security, peacebuilding, youth networks and national institutions — as
+                listed in the YEGO partnership brief.
               </p>
             </div>
-            <ul className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
-              {PARTNER_CATEGORIES.map((p) => (
-                <li key={p} className="flex items-center gap-3 rounded-lg border bg-card p-4 font-semibold">
-                  <Users className="size-5 text-primary" /> {p}
-                </li>
-              ))}
-            </ul>
+            <Button asChild variant="outline">
+              <Link to="/partners">
+                Meet the partners <ArrowRight />
+              </Link>
+            </Button>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {PARTNERS.map((partner) => (
+              <div key={partner.id} className="flex flex-col items-center rounded-lg border bg-background p-4 text-center">
+                <div className="grid h-16 w-full place-items-center">
+                  <img
+                    src={partner.logo}
+                    alt={`${partner.name} logo`}
+                    className="max-h-14 max-w-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="mt-2 text-[11px] font-bold leading-tight">{partner.name}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>

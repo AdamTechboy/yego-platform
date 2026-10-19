@@ -5,7 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { YegoMark } from '@/components/yego/logo'
-import { setTrainingProgress } from '@/lib/demo-store'
+import { submitTrainingQuiz } from '@/lib/demo-store'
 import { TRAINING_MODULES, type Application } from '@/lib/fixtures'
 import { fmtDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
@@ -17,6 +17,7 @@ export function TrainingCentre({ app }: { app: Application }) {
   const passed = Math.round((app.trainingProgress / 100) * N)
   const [open, setOpen] = useState<string | null>(null)
   const [answers, setAnswers] = useState<Record<number, number>>({})
+  const [busy, setBusy] = useState(false)
 
   if (!unlocked) {
     return (
@@ -30,15 +31,24 @@ export function TrainingCentre({ app }: { app: Application }) {
 
   const mod = TRAINING_MODULES.find((m) => m.id === open)
 
-  function submitQuiz() {
+  async function submitQuiz() {
     if (!mod) return
-    const correct = mod.quiz.every((q, i) => answers[i] === q.answer)
-    if (!correct) return toast.error('Some answers are incorrect. Review the module and try again.')
-    const idx = TRAINING_MODULES.indexOf(mod)
-    if (idx === passed) setTrainingProgress(app.id, Math.round(((idx + 1) / N) * 100))
-    toast.success(`Module ${idx + 1} passed`)
-    setOpen(null)
-    setAnswers({})
+    setBusy(true)
+    try {
+      const ordered = mod.quiz.map((_, index) => answers[index] ?? -1)
+      const result = await submitTrainingQuiz(mod.id, ordered)
+      if (!result.passed) {
+        toast.error('Some answers are incorrect. Review the module and try again.')
+        return
+      }
+      toast.success(`Module ${TRAINING_MODULES.indexOf(mod) + 1} passed`)
+      setOpen(null)
+      setAnswers({})
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not submit the assessment.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -83,7 +93,7 @@ export function TrainingCentre({ app }: { app: Application }) {
             ))}
           </div>
           <div className="mt-5 flex gap-2">
-            <Button onClick={submitQuiz} disabled={Object.keys(answers).length < mod.quiz.length}>
+            <Button onClick={() => void submitQuiz()} disabled={busy || Object.keys(answers).length < mod.quiz.length}>
               Submit answers
             </Button>
             <Button variant="ghost" onClick={() => { setOpen(null); setAnswers({}) }}>

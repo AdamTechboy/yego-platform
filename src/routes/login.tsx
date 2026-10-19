@@ -8,16 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Field } from '@/components/yego/fields'
 import { YegoLogo } from '@/components/yego/logo'
-import { findAccount, signIn, signInApplicant } from '@/lib/demo-store'
-import { DEMO_ACCOUNTS, SEED_APPLICATIONS } from '@/lib/fixtures'
+import { signIn, signInApplicant } from '@/lib/demo-store'
 
 export const Route = createFileRoute('/login')({
   head: () => ({ meta: [{ title: 'Login · YEGO Platform' }] }),
   component: LoginPage,
 })
-
-// Preview-only password. Real credentials arrive with Netlify Identity.
-const PREVIEW_PASSWORD = 'yego-preview'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -26,28 +22,37 @@ function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  function guardLogin(e: React.FormEvent) {
+  async function guardLogin(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
-    const s = signInApplicant(appId, phone)
-    if (!s) return setErr('Application ID and phone number do not match our records.')
-    toast.success(`Welcome, ${s.name.split(' ')[0]}`)
-    void navigate({ to: '/portal' })
+    setBusy(true)
+    try {
+      const s = await signInApplicant(appId, phone)
+      toast.success(`Welcome, ${s.name.split(' ')[0]}`)
+      void navigate({ to: '/portal' })
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : 'Could not sign in.')
+    } finally {
+      setBusy(false)
+    }
   }
 
-  function staffLogin(e: React.FormEvent) {
+  async function staffLogin(e: React.FormEvent) {
     e.preventDefault()
     setErr('')
-    const a = findAccount(email)
-    if (!a || password !== PREVIEW_PASSWORD) return setErr('Invalid email or password.')
-    signIn(a)
-    toast.success(`Signed in as ${a.role}`)
-    void navigate({ to: a.kind === 'command' ? '/command' : '/portal' })
+    setBusy(true)
+    try {
+      const s = await signIn(email, password)
+      toast.success(`Signed in as ${s.role}`)
+      void navigate({ to: s.kind === 'command' ? '/command' : '/portal' })
+    } catch (error) {
+      setErr(error instanceof Error ? error.message : 'Could not sign in.')
+    } finally {
+      setBusy(false)
+    }
   }
-
-  const guardDemo = SEED_APPLICATIONS[2]
-  const applicantDemo = SEED_APPLICATIONS[4]
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -99,7 +104,7 @@ function LoginPage() {
                   <Input id="ph" type="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 </Field>
                 {err && <p className="text-sm font-medium text-destructive">{err}</p>}
-                <Button type="submit" size="lg" className="w-full">
+                <Button type="submit" size="lg" className="w-full" disabled={busy}>
                   <KeyRound /> Log in to Guard portal
                 </Button>
               </form>
@@ -114,41 +119,13 @@ function LoginPage() {
                   <Input id="pw" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 </Field>
                 {err && <p className="text-sm font-medium text-destructive">{err}</p>}
-                <Button type="submit" size="lg" className="w-full">
+                <Button type="submit" size="lg" className="w-full" disabled={busy}>
                   <ShieldCheck /> Log in to Command
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
 
-          <details className="mt-8 rounded-lg border bg-muted/50 p-4 text-sm">
-            <summary className="cursor-pointer font-semibold">Preview accounts</summary>
-            <p className="mt-2 text-muted-foreground">
-              Staff password for all preview accounts: <code className="rounded bg-background px-1">{PREVIEW_PASSWORD}</code>
-            </p>
-            <ul className="mt-3 space-y-1.5">
-              {DEMO_ACCOUNTS.filter((a) => a.kind === 'command').map((a) => (
-                <li key={a.email}>
-                  <button type="button" className="text-left hover:underline" onClick={() => { setEmail(a.email); setPassword(PREVIEW_PASSWORD) }}>
-                    <code>{a.email}</code> <span className="text-muted-foreground">({a.role})</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-muted-foreground">Guard tab:</p>
-            <ul className="mt-1 space-y-1.5">
-              {[
-                { app: guardDemo, label: 'certified Guard' },
-                { app: applicantDemo, label: 'applicant in training' },
-              ].map(({ app, label }) => (
-                <li key={app.id}>
-                  <button type="button" className="text-left hover:underline" onClick={() => { setAppId(app.id); setPhone(app.phone) }}>
-                    <code>{app.id}</code> / <code>{app.phone}</code> <span className="text-muted-foreground">({label})</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </details>
         </div>
       </div>
     </div>

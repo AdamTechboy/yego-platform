@@ -103,6 +103,7 @@ function ApplyPage() {
   const [errors, setErrors] = useState<Errors>({})
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Application | null>(null)
+  const [phoneForConfirmation, setPhoneForConfirmation] = useState('')
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => {
     setF((p) => ({ ...p, [k]: v }))
@@ -110,7 +111,7 @@ function ApplyPage() {
   }
   const lgas = getState(f.stateOfResidence)?.lgas ?? []
 
-  function next() {
+  async function next() {
     const e = validate(step, f)
     setErrors(e)
     if (Object.keys(e).length) {
@@ -123,12 +124,13 @@ function ApplyPage() {
       return
     }
     setBusy(true)
-    setTimeout(() => {
-      const app = submitApplication({
+    try {
+      const phone = f.phone.replace(/\s/g, '')
+      const app = await submitApplication({
         fullName: f.fullName.trim(),
         gender: f.gender as 'Female' | 'Male',
         dateOfBirth: f.dateOfBirth,
-        phone: f.phone.replace(/\s/g, ''),
+        phone,
         whatsapp: (f.sameWhatsapp ? f.phone : f.whatsapp).replace(/\s/g, ''),
         nin: f.nin,
         email: f.email.trim(),
@@ -136,18 +138,25 @@ function ApplyPage() {
         stateOfResidence: f.stateOfResidence,
         lga: f.lga,
         ward: f.ward.trim(),
-        pollingUnit: f.pollingUnit.trim() || 'To be assigned',
+        pollingUnit: f.pollingUnit.trim() || undefined,
         background: f.background,
         experience: f.experience.trim(),
-        photo: f.photo,
+        photo: f.photo!,
+        nonPartisan: true,
+        codeOfConduct: true,
+        dataConsent: true,
       })
-      setBusy(false)
       setDone(app)
+      setPhoneForConfirmation(phone)
       window.scrollTo({ top: 0 })
-    }, 700)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not submit the application.')
+    } finally {
+      setBusy(false)
+    }
   }
 
-  if (done) return <Success app={done} />
+  if (done) return <Success app={done} phone={phoneForConfirmation} />
 
   return (
     <PublicShell>
@@ -305,7 +314,7 @@ function ApplyPage() {
   )
 }
 
-function Success({ app }: { app: Application }) {
+function Success({ app, phone }: { app: Application; phone: string }) {
   const [confirmed, setConfirmed] = useState(false)
   return (
     <PublicShell>
@@ -340,8 +349,11 @@ function Success({ app }: { app: Application }) {
               size="lg"
               className="mt-4 w-full bg-[#25D366] text-[#073b1c] hover:bg-[#25D366]/90"
               onClick={() => {
-                confirmWhatsApp(app.id)
-                setConfirmed(true)
+                void confirmWhatsApp(app.id, phone)
+                  .then(() => setConfirmed(true))
+                  .catch((error: unknown) =>
+                    toast.error(error instanceof Error ? error.message : 'Could not confirm the application.'),
+                  )
               }}
             >
               <a href={WHATSAPP_CHANNEL_URL} target="_blank" rel="noopener noreferrer">

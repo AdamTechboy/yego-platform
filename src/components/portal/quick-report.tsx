@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   ArrowRight,
@@ -53,12 +53,11 @@ export function QuickReport({ guard }: { guard: Application }) {
   const [type, setType] = useState('')
   const [severity, setSeverity] = useState<Severity>('Medium')
   const [description, setDescription] = useState('')
-  const [when, setWhen] = useState('')
+  const [when, setWhen] = useState(() => localNow())
   const [files, setFiles] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<Incident | null>(null)
 
-  useEffect(() => setWhen(localNow()), [])
 
   function gps() {
     if (!navigator.geolocation) return toast.error('GPS not available on this device.')
@@ -80,31 +79,28 @@ export function QuickReport({ guard }: { guard: Application }) {
 
   const canNext = [!!point, !!type, !!when, true][step]
 
-  function submit() {
+  async function submit() {
     setBusy(true)
-    setTimeout(() => {
-      const inc = submitIncident({
+    try {
+      const inc = await submitIncident({
         type,
         description: description.trim() || type,
         severity,
-        state: guard.stateOfResidence,
-        lga: guard.lga,
-        ward: guard.ward,
-        pollingUnit: guard.pollingUnit,
         lat: point!.lat,
         lng: point!.lng,
         occurredAt: new Date(when).toISOString(),
-        reporter: guard.fullName,
-        reporterId: guard.yegoId ?? guard.id,
         evidence: files.map((f) => ({
           kind: f.type.startsWith('image/') ? 'photo' : f.type.startsWith('video/') ? 'video' : 'document',
           name: f.name,
         })),
         electionDay: true,
       })
-      setBusy(false)
       setDone(inc)
-    }, 600)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send the report.')
+    } finally {
+      setBusy(false)
+    }
   }
 
   function reset() {
@@ -297,7 +293,7 @@ export function QuickReport({ guard }: { guard: Application }) {
               Next <ArrowRight />
             </Button>
           ) : (
-            <Button size="lg" variant={severity === 'Critical' ? 'destructive' : 'default'} disabled={busy} onClick={submit}>
+            <Button size="lg" variant={severity === 'Critical' ? 'destructive' : 'default'} disabled={busy} onClick={() => void submit()}>
               {busy ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Send />} Send report
             </Button>
           )}
