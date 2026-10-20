@@ -33,6 +33,16 @@ function requestAgent(): string | null {
   }
 }
 
+function secureCookies(): boolean {
+  if (process.env.COOKIE_SECURE) return process.env.COOKIE_SECURE === 'true'
+  if (process.env.NODE_ENV === 'production') return true
+  try {
+    return getRequestHeaders().get('x-forwarded-proto') === 'https'
+  } catch {
+    return false
+  }
+}
+
 function meta() {
   return { ip: requestIp(), userAgent: requestAgent() }
 }
@@ -158,7 +168,7 @@ async function createSession(user: AuthUser): Promise<void> {
   setCookie(COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
+    secure: secureCookies(),
     path: '/',
     maxAge: Math.floor(TTL_MS / 1000),
   })

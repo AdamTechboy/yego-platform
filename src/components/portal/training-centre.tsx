@@ -165,7 +165,7 @@ export function Certificate({ app }: { app: Application }) {
   const certifiedAt = [...app.history].reverse().find((h) => h.action === 'Certified/Active')?.at ?? app.submittedAt
   return (
     <div className="rounded-lg border-4 border-double border-primary bg-card p-6 text-center print:border-black" id="certificate">
-      <YegoMark className="mx-auto size-12" />
+      <YegoMark className="mx-auto size-24" />
       <p className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Youth Electoral Guards Observers</p>
       <h3 className="mt-2 font-display text-2xl font-black">Certificate of Completion</h3>
       <p className="mt-3 text-sm text-muted-foreground">This certifies that</p>

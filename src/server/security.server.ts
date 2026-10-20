@@ -36,8 +36,11 @@ function encryptionKey(): Buffer {
     if (key.length !== 32) throw new Error('NIN_ENCRYPTION_KEY must be 32 bytes, base64 encoded')
     return key
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('NIN_ENCRYPTION_KEY is required in production')
+  // The derived fallback key is for local development and tests only.
+  const local = process.env.NETLIFY_DEV === 'true' || ['development', 'test'].includes(process.env.NODE_ENV ?? '')
+  if (!local) {
+    console.error('NIN_ENCRYPTION_KEY is not configured; refusing to store or read NIN values.')
+    throw new AppError('Applications are temporarily unavailable. Please try again later.', 503)
   }
   return createHash('sha256').update(process.env.SESSION_SECRET ?? 'yego-development-only').digest()
 }

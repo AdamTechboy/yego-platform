@@ -13,6 +13,7 @@ export function loadEnv() {
 export function connectionString() {
   loadEnv()
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
+  if (process.env.NETLIFY_DB_URL) return process.env.NETLIFY_DB_URL
   if (process.env.NETLIFY_DATABASE_URL) return process.env.NETLIFY_DATABASE_URL
   const statePath = resolve('.netlify/state.json')
   if (existsSync(statePath)) {
