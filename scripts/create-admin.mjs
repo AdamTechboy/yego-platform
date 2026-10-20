@@ -1,14 +1,48 @@
 import { randomBytes, scryptSync } from 'node:crypto'
+import { createInterface } from 'node:readline'
 import { loadEnv, withClient } from './db.mjs'
 
 loadEnv()
 
+// Reads a line without echoing it, so the password never lands in shell
+// history, process listings or an env file.
+function promptHidden(question) {
+  return new Promise((resolve) => {
+    const rl = createInterface({ input: process.stdin, output: process.stdout, terminal: true })
+    rl._writeToOutput = (text) => {
+      if (text.includes(question)) process.stdout.write(text)
+    }
+    rl.question(question, (answer) => {
+      rl.close()
+      process.stdout.write('\n')
+      resolve(answer)
+    })
+  })
+}
+
+async function readPassword() {
+  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD
+  if (!process.stdin.isTTY) return undefined
+  const first = await promptHidden('New Super Administrator password: ')
+  const second = await promptHidden('Repeat password: ')
+  if (first !== second) {
+    console.error('Passwords do not match.')
+    process.exit(1)
+  }
+  return first
+}
+
 const email = process.env.ADMIN_EMAIL?.trim().toLowerCase()
-const password = process.env.ADMIN_PASSWORD
 const name = process.env.ADMIN_NAME?.trim() || 'Super Administrator'
 
-if (!email || !password) {
-  console.error('Set ADMIN_EMAIL, ADMIN_PASSWORD and optionally ADMIN_NAME, then rerun.')
+if (!email) {
+  console.error('Set ADMIN_EMAIL (and optionally ADMIN_NAME), then rerun. You will be prompted for the password.')
+  process.exit(1)
+}
+
+const password = await readPassword()
+if (!password) {
+  console.error('Set ADMIN_PASSWORD or run in an interactive terminal to be prompted for it.')
   process.exit(1)
 }
 if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {

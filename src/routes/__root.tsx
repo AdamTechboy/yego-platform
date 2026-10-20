@@ -47,7 +47,8 @@ export const Route = createRootRoute({
       { name: 'theme-color', content: '#0b6b3a' },
     ],
     links: [
-      { rel: 'icon', href: '/yego-mark.svg', type: 'image/svg+xml' },
+      { rel: 'icon', href: '/.netlify/images?url=/img/yego-logo.jpg&w=64&fm=png', type: 'image/png' },
+      { rel: 'apple-touch-icon', href: '/.netlify/images?url=/img/yego-logo.jpg&w=180&fm=png' },
       { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
       {
         rel: 'preconnect',

@@ -3,7 +3,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { withClient } from './db.mjs'
 
-const DIR = 'db/migrations'
+const DIR = 'netlify/database/migrations'
 
 export async function migrate(client) {
   await client.query(`

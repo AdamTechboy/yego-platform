@@ -86,6 +86,12 @@ let lagosCoordinator: AuthUser
 let trainingOfficer: AuthUser
 
 beforeAll(async () => {
+  // These tests create and delete records. Never point them at a hosted database.
+  const url = process.env.DATABASE_URL ?? process.env.NETLIFY_DB_URL ?? process.env.NETLIFY_DATABASE_URL ?? ''
+  if (url && !/localhost|127\.0\.0\.1/.test(url)) {
+    throw new Error('Integration tests only run against a local database. Unset DATABASE_URL/NETLIFY_DB_URL.')
+  }
+
   const healthy = await query<{ ok: number }>('select 1 as ok')
   expect(healthy.rows[0].ok).toBe(1)
 
