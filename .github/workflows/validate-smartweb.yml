@@ -13,7 +13,26 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: yego_test
+          POSTGRES_PASSWORD: yego_test_ci_only
+          POSTGRES_DB: yego_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U yego_test -d yego_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://yego_test:yego_test_ci_only@127.0.0.1:5432/yego_test
+      NIN_ENCRYPTION_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      SESSION_SECRET: ci-testing-only-never-use-in-production
+      NODE_ENV: test
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -34,6 +53,12 @@ jobs:
         run: pnpm lint
       - name: Unit tests (no production database)
         run: pnpm test
+      - name: Apply migrations to isolated test PostgreSQL
+        run: pnpm db:migrate
+      - name: Seed isolated test database with demo fixtures
+        run: pnpm db:seed:demo
+      - name: Database integration tests (CI database only)
+        run: pnpm test:integration
       - name: Build for standalone Node.js
         run: pnpm build
       - name: Verify standalone entry point
