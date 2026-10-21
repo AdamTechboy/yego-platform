@@ -66,3 +66,19 @@ jobs:
           test -f dist/server/server.js
           test -d dist/client
           node --check server.mjs
+      - name: Package SmartWeb deployment files
+        run: |
+          mkdir -p smartweb-release
+          cp -R dist smartweb-release/dist
+          cp server.mjs package.json pnpm-lock.yaml smartweb-release/
+          cp -R scripts smartweb-release/
+          mkdir -p smartweb-release/src/lib
+          cp src/lib/nigeria.ts smartweb-release/src/lib/
+          cp -R netlify/database/migrations smartweb-release/migrations
+      - name: Upload SmartWeb build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: yego-smartweb-${{ github.sha }}
+          path: smartweb-release/
+          if-no-files-found: error
+          retention-days: 7
