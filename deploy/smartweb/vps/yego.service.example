@@ -1,0 +1,25 @@
+# Example only. Copy to /etc/systemd/system/yego.service after editing User/Group/paths.
+[Unit]
+Description=YEGO web application
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=yego
+Group=yego
+WorkingDirectory=/opt/yego
+EnvironmentFile=/etc/yego/yego.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /opt/yego/server.mjs
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/tmp
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
