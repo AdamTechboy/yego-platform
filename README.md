@@ -2,7 +2,7 @@
 
 Public website and operational platform for YEGO, Nigeria’s youth-led election observation, early-warning and incident-reporting mission. Guards apply, train, get deployed and report. Command screens applicants, verifies incidents and refers them to response agencies.
 
-**Stack:** TanStack Start (React 19), Vite 8, Tailwind CSS 4, shadcn/ui, Leaflet + OpenStreetMap, Google Maps embeds, PostgreSQL, Netlify.
+**Stack:** TanStack Start (React 19), Vite 8, Tailwind CSS 4, shadcn/ui, Leaflet + OpenStreetMap, Google Maps embeds, PostgreSQL, SmartWeb VPS.
 
 ## What is persistent
 
@@ -14,8 +14,7 @@ The only browser storage used by the application is TanStack Router’s in-memor
 
 ```bash
 pnpm install
-pnpm dev                 # start the local Netlify database and dev server (leave running)
-# In another terminal:
+# Configure DATABASE_URL for a local PostgreSQL database first
 pnpm db:migrate          # create/upgrade the schema
 pnpm db:seed:demo        # reference data + development demo records
 pnpm db:import:pus       # import the INEC polling-unit register (optional but needed for PU selects)
@@ -23,7 +22,7 @@ pnpm db:import:pus       # import the INEC polling-unit register (optional but n
 
 The local app is available at `http://localhost:3000` while `pnpm dev` runs.
 
-`pnpm dev` starts the Netlify Vite plugin, which provisions a local PostgreSQL cluster under `.netlify/db` and writes its connection string to `.netlify/state.json`. The app and scripts read that file automatically in development. If you prefer an external database, set `DATABASE_URL` (or `NETLIFY_DB_URL`) and the fallback is ignored.
+`pnpm dev` starts the Vite development server; set `DATABASE_URL` to a running local PostgreSQL instance before migrating or testing database workflows.
 
 ### Development demo accounts
 
@@ -40,7 +39,7 @@ The login page no longer prints these credentials. Rotate them before any real d
 
 ## Database
 
-- Engine: PostgreSQL 15+ (local cluster is PostgreSQL 17.5 via the Netlify dev plugin; production uses Netlify Database/Neon).
+- Engine: PostgreSQL 15+ (development and production require a configured PostgreSQL instance).
 - Migrations: `netlify/database/migrations/*.sql`, applied in filename order and recorded in `schema_migrations` with checksums.
 - Schema reference: [docs/BACKEND_ARCHITECTURE.md](docs/BACKEND_ARCHITECTURE.md).
 - Sequences generate public references: `YG-APP-######`, `INC-YYYY-######`, `EW-YYYY-####`, `YEGO-CERT-####`.
@@ -59,19 +58,9 @@ pnpm db:create-admin      # create/update a Super Administrator from ADMIN_* env
 
 ### Production database
 
-1. Link the project to a Netlify site: `netlify link`.
-2. Enable Netlify Database. Its managed connection is provided to Netlify functions through `NETLIFY_DB_URL`.
-3. Deploy the current `main` branch and verify Netlify has applied the SQL files in `netlify/database/migrations/` (including reference geography). Do not run manual migrations on production without checking the migration history first.
-4. For SmartWeb or other self-hosted PostgreSQL deployments, set `DATABASE_URL`, run `pnpm db:migrate`, then run `pnpm db:seed`.
-5. Create the first administrator:
+For SmartWeb VPS deployment, follow [deploy/smartweb/vps/README.md](deploy/smartweb/vps/README.md). Configure PostgreSQL and `DATABASE_URL`, run `pnpm db:migrate` and `pnpm db:seed`, then securely create the first administrator using `pnpm db:create-admin`. Do not seed demo data on production.
 
-```bash
-ADMIN_EMAIL=admin@example.com ADMIN_NAME='YEGO Administrator' pnpm db:create-admin
-```
-
-For the administrator bootstrap command, use a trusted machine connected to the intended database. The script prompts for the password; never enter a real production password in a chat, commit, or shell-history command. Confirm the target database before running it.
-
-Alternatively, any managed PostgreSQL provider that exposes `DATABASE_URL` works; the app uses the standard `pg` driver and does not depend on provider-specific APIs.
+Any PostgreSQL provider reachable via `DATABASE_URL` works with the standard `pg` driver.
 
 ## Authentication and roles
 
@@ -95,7 +84,7 @@ Alternatively, any managed PostgreSQL provider that exposes `DATABASE_URL` works
 
 Copy `.env.example` to `.env` for local overrides. Names only:
 
-- `DATABASE_URL`, `NETLIFY_DB_URL` (provided by Netlify; do not copy its production value into source control)
+- `DATABASE_URL` (server-only PostgreSQL connection)
 - `NIN_ENCRYPTION_KEY` (32 bytes, base64)
 - `SESSION_SECRET`
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`
@@ -141,7 +130,7 @@ Never commit `.env` or production credentials.
 ## Project structure
 
 ```
-netlify/database/migrations/    versioned SQL migrations
+netlify/database/migrations/    SQL migrations (legacy folder name; usable on SmartWeb)
 scripts/                migration, seed and admin bootstrap scripts
 src/routes/             public pages, application, status, login, portal, command
 src/components/         brand, portal, Command and UI components
@@ -156,4 +145,4 @@ A standalone Node server is included for SmartWeb/cPanel: `server.mjs` and `app.
 
 ## Status
 
-Production-shaped backend is implemented and verified against a provisioned local PostgreSQL database. Production database verification and administrator bootstrap, private evidence storage, Netlify Identity/MFA, the INEC polling-unit import, SMS/WhatsApp delivery and the remaining Command views are tracked in the implementation report. The public site, applicant status tracking and authorized Command workflows now read and write database records.
+Production-shaped backend is implemented and verified against a provisioned local PostgreSQL database. SmartWeb VPS database verification and administrator bootstrap, private evidence storage, Netlify Identity/MFA, the INEC polling-unit import, SMS/WhatsApp delivery and the remaining Command views are tracked in the implementation report. The public site, applicant status tracking and authorized Command workflows now read and write database records.
