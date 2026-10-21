@@ -1,5 +1,6 @@
 import { createReadStream } from 'node:fs'
 import { createInterface } from 'node:readline'
+import { Readable } from 'node:stream'
 import { withClient } from './db.mjs'
 
 const source = process.argv[2] ?? 'https://raw.githubusercontent.com/Emeka-Onwuepe/Polling_Units_in_Nigeria/main/Nigeria_polling_units.csv'
@@ -51,8 +52,11 @@ await withClient(async (client) => {
     // Stream the download into a temporary line reader by fetching text in chunks.
     const response = await fetch(source)
     if (!response.ok) throw new Error(`Could not download polling units: ${response.status}`)
-    const text = await response.text()
-    lineReader = text.split(/\r?\n/)[Symbol.iterator]()
+    if (!response.body) throw new Error('Polling unit download returned no body')
+    lineReader = createInterface({
+      input: Readable.fromWeb(response.body),
+      crlfDelay: Infinity,
+    })
   } else {
     lineReader = createInterface({ input: createReadStream(source), crlfDelay: Infinity })[Symbol.asyncIterator]()
   }
@@ -72,17 +76,16 @@ await withClient(async (client) => {
       params.push(...row)
       index += 7
     }
-    await client.query(
+    const result = await client.query(
       `insert into polling_units (state_code, lga, ward, code, name, source, verified)
        values ${values.join(',')} on conflict (code) do nothing`,
       params,
     )
-    imported += batch.length
+    imported += result.rowCount ?? 0
     batch = []
   }
 
-  const iterator = lineReader[Symbol.asyncIterator] ? lineReader : (async function* () { yield* lineReader })()
-  for await (const line of iterator) {
+  for await (const line of lineReader) {
     if (header) { header = false; continue }
     if (!line.trim()) continue
     const cells = parseCsvLine(line)
