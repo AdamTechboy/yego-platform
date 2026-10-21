@@ -1,0 +1,43 @@
+name: Validate SmartWeb build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Install dependencies from committed lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Unit tests (no production database)
+        run: pnpm test
+      - name: Build for standalone Node.js
+        run: pnpm build
+      - name: Verify standalone entry point
+        run: |
+          test -f dist/server/server.js
+          test -d dist/client
+          node --check server.mjs
