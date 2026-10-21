@@ -94,3 +94,15 @@ Use a separate staging environment where possible. Take a verified backup; revie
 
 ## Stop/go
 Do not claim 300,000 concurrent active users are supported until representative peak load tests pass. Data privacy review, MFA for privileged accounts, safe evidence-object storage, and reliable backup recovery remain release gates.
+
+## Optional low-memory deployment from GitHub Actions
+
+On the 2 GB testing VPS, prefer using the prebuilt archive from the successful **Validate SmartWeb build** GitHub Actions run rather than compiling with Vite on the server.
+
+1. Open the successful workflow run on the `main` branch and download the `yego-smartweb-<commit-sha>` artifact within seven days.
+2. Verify its commit SHA matches the reviewed deployment. Unzip locally and copy its contents to the application directory using SSH/SCP or SFTP over an encrypted connection. Never copy `.env` or database secrets into the artifact.
+3. With Node.js 24 and pnpm 10 installed, run `pnpm install --prod --frozen-lockfile` from the extracted application directory. Build tools are not required on the VPS.
+4. Keep `scripts/`, `src/lib/nigeria.ts` and `migrations/` available for database setup. **Note:** migration command currently reads `netlify/database/migrations/`, so copy the packaged `migrations/` back to that expected path or use the full repository clone for migrations. Do not run them against an already initialized database without verifying the target.
+5. Configure runtime environment, systemd and nginx as instructed above, and check HTTPS and real login/application workflows.
+
+The archive is a build artifact, **not** a self-contained executable: Node dependencies, PostgreSQL and secure server configuration are still required. The package must pass the new GitHub Actions checks before use. Do not treat a successful build as a live load or security test.
