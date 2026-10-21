@@ -1,5 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync } from 'node:fs'
 import pg from 'pg'
 
 export function loadEnv() {
@@ -13,15 +12,8 @@ export function loadEnv() {
 export function connectionString() {
   loadEnv()
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL
-  if (process.env.NETLIFY_DB_URL) return process.env.NETLIFY_DB_URL
-  if (process.env.NETLIFY_DATABASE_URL) return process.env.NETLIFY_DATABASE_URL
-  const statePath = resolve('.netlify/state.json')
-  if (existsSync(statePath)) {
-    const state = JSON.parse(readFileSync(statePath, 'utf8'))
-    if (state.dbConnectionString) return state.dbConnectionString
-  }
   throw new Error(
-    'No database configured. Set DATABASE_URL (see .env.example) or run `pnpm dev` so the Netlify dev plugin provisions the local database.',
+    'No database configured. Set DATABASE_URL (see .env.example).',
   )
 }
 
