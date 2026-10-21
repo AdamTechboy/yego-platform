@@ -1,42 +1,19 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { getDatabase } from '@netlify/database'
 import pg from 'pg'
 
 declare global {
   var __yegoPool: pg.Pool | undefined
 }
 
-function netlifyDatabaseUrl(): string | undefined {
-  // Netlify Database injects NETLIFY_DB_URL into functions and `netlify dev`.
-  return process.env.NETLIFY_DB_URL ?? process.env.NETLIFY_DATABASE_URL
-}
-
 function connectionString(): string {
-  const fromEnv = process.env.DATABASE_URL ?? netlifyDatabaseUrl()
+  const fromEnv = process.env.DATABASE_URL
   if (fromEnv) return fromEnv
 
-  if (process.env.NODE_ENV !== 'production') {
-    const statePath = resolve('.netlify/state.json')
-    if (existsSync(statePath)) {
-      const state = JSON.parse(readFileSync(statePath, 'utf8')) as { dbConnectionString?: string }
-      if (state.dbConnectionString) return state.dbConnectionString
-    }
-  }
-
   throw new Error(
-    'Database is not configured. Enable Netlify Database, or set DATABASE_URL on other hosts. See docs/BACKEND_ARCHITECTURE.md.',
+    'Database is not configured. Set DATABASE_URL on the server. See deploy/smartweb/vps/README.md.',
   )
 }
 
 function createPool(): pg.Pool {
-  // On Netlify, use the platform driver so the connection settings (driver,
-  // TLS, rotated credentials) always match the managed database. DATABASE_URL
-  // still takes precedence for SmartWeb and other self-hosted deployments.
-  if (!process.env.DATABASE_URL && process.env.NETLIFY_DB_URL) {
-    return getDatabase().pool as unknown as pg.Pool
-  }
-
   const url = connectionString()
   const local = /localhost|127\.0\.0\.1/.test(url)
   return new pg.Pool({
