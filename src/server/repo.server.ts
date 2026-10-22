@@ -396,8 +396,14 @@ export async function submitIncident(user: AuthUser, input: Record<string, unkno
     }
 
     const publicId = await nextRef(client, 'incident_ref_seq', (n) => `INC-${new Date().getFullYear()}-${n.slice(-6)}`, 6)
+    const incidentUuid = randomUUID()
     const inserted = await client.query<IncidentRow>(
-      `insert into incidents
+      process.env.DB_ENGINE === 'mysql'
+        ? `insert into incidents
+        (id, public_id, type, description, severity, state, lga, ward, polling_unit, lat, lng,
+         occurred_at, reporter_name, reporter_id, reporter_user_id, status, category, election_day)
+       values ($17,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'Reported',$15,$16)`
+        : `insert into incidents
         (public_id, type, description, severity, state, lga, ward, polling_unit, lat, lng,
          occurred_at, reporter_name, reporter_id, reporter_user_id, status, category, election_day)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'Reported',$15,$16)
@@ -419,9 +425,12 @@ export async function submitIncident(user: AuthUser, input: Record<string, unkno
         user.id,
         input.category ?? null,
         Boolean(input.electionDay),
+        ...(process.env.DB_ENGINE === 'mysql' ? [incidentUuid] : []),
       ],
     )
-    const incident = inserted.rows[0]
+    const incident = process.env.DB_ENGINE === 'mysql'
+      ? (await client.query<IncidentRow>('select * from incidents where id = $1', [incidentUuid])).rows[0]
+      : inserted.rows[0]
 
     const evidence = (input.evidence ?? []) as { kind: string; name: string }[]
     for (const item of evidence) {
