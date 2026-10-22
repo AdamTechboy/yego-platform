@@ -166,8 +166,10 @@ async function createSession(user: AuthUser): Promise<void> {
   await query(
     isMysql()
       ? `insert into sessions (id, user_id, token_hash, expires_at, ip, user_agent) values ($1,$2,$3,$4,$5,$6)`
-      : `insert into sessions (user_id, token_hash, expires_at, ip, user_agent) values ($2,$3,$4,$5,$6)`,
-    [randomUUID(), user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent],
+      : `insert into sessions (user_id, token_hash, expires_at, ip, user_agent) values ($1,$2,$3,$4,$5)`,
+    isMysql()
+      ? [randomUUID(), user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent]
+      : [user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent],
   )
   setCookie(COOKIE, token, {
     httpOnly: true,
@@ -275,8 +277,10 @@ export async function loginGuard(input: { applicationId: string; phone: string }
         ? `insert into users (id, email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
            values ($1,$2,$3,$4,'YEGO Guard','guard','self',$5,$6,$7)`
         : `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
-           values ($2,$3,$4,'YEGO Guard','guard','self',$5,$6,$7) returning *`,
-      [userId, email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
+           values ($1,$2,$3,'YEGO Guard','guard','self',$4,$5,$6) returning *`,
+      isMysql()
+        ? [userId, email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id]
+        : [email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
     )
     if (isMysql()) {
       const selected = await client.query('select * from users where id = $1', [userId])
