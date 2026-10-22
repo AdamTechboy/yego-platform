@@ -1,4 +1,5 @@
 import type { PoolClient } from 'pg'
+import { randomUUID } from 'node:crypto'
 import type { Application } from '@/lib/fixtures'
 
 import {
@@ -208,6 +209,15 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
 }
 
 async function nextRef(client: PoolClient, sequence: string, prefix: (value: string) => string, width: number) {
+  if (process.env.DB_ENGINE === 'mysql') {
+    const allowed = ['application_ref_seq', 'incident_ref_seq', 'warning_ref_seq', 'certificate_ref_seq']
+    if (!allowed.includes(sequence)) throw new Error('Unsupported sequence')
+    const current = await client.query<{ next_value: string }>('select next_value from yego_counters where name = $1 for update', [sequence])
+    if (!current.rows[0]) throw new Error('Missing counter: ' + sequence)
+    const n = current.rows[0].next_value
+    await client.query('update yego_counters set next_value = next_value + 1 where name = $1', [sequence])
+    return prefix(String(n).padStart(width, '0'))
+  }
   const result = await client.query<{ n: string }>(`select nextval('${sequence}')::text as n`)
   return prefix(result.rows[0].n.padStart(width, '0'))
 }
