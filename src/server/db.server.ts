@@ -28,6 +28,15 @@ function mysqlPool(): mysql.Pool {
 }
 
 
+async function mysqlQuery<T extends pg.QueryResultRow>(sql: string, params: unknown[] = []): Promise<pg.QueryResult<T>> {
+  const { bindMysql } = await import('../../scripts/mysql-adapter.mjs')
+  const bound = bindMysql(sql, params)
+  const [result] = await mysqlPool().query(bound.sql, bound.params)
+  const rows = Array.isArray(result) ? result as T[] : []
+  const affected = Array.isArray(result) ? rows.length : (result as mysql.ResultSetHeader).affectedRows
+  return { rows, rowCount: affected, command: '', oid: 0, fields: [] }
+}
+
 function connectionString(): string {
   const fromEnv = process.env.DATABASE_URL
   if (fromEnv) return fromEnv
@@ -59,7 +68,7 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
   params: unknown[] = [],
 ): Promise<pg.QueryResult<T>> {
   if (usingMysql()) {
-    throw new Error('MySQL query routing is not enabled until SQL conversion is complete')
+    return mysqlQuery<T>(text, params)
   }
   return pool().query<T>(text, params)
 }
