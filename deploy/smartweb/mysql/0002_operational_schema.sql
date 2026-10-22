@@ -2,7 +2,7 @@
 -- Requires 0001_core_schema.sql first. WIP, untested against production.
 SET NAMES utf8mb4;
 CREATE TABLE IF NOT EXISTS incidents (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  public_id VARCHAR(100) NOT NULL UNIQUE,
  type VARCHAR(190) NOT NULL,
  description LONGTEXT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS incidents (
  CONSTRAINT fk_incident_reporter FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS incident_evidence (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  incident_id CHAR(36) NOT NULL,
  kind VARCHAR(20) NOT NULL,
  file_name TEXT NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS incident_evidence (
  CONSTRAINT fk_evidence_incident FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS incident_history (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  incident_id CHAR(36) NOT NULL,
  action VARCHAR(190) NOT NULL,
  from_status VARCHAR(100) NULL,
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS incident_history (
  CONSTRAINT fk_incident_history FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS incident_referrals (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  incident_id CHAR(36) NOT NULL,
  agency_code VARCHAR(100) NOT NULL,
  agency_name VARCHAR(190) NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS incident_referrals (
  CONSTRAINT fk_referral_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS referral_events (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  referral_id CHAR(36) NOT NULL,
  event VARCHAR(190) NOT NULL,
  detail LONGTEXT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS referral_events (
  CONSTRAINT fk_referral_event FOREIGN KEY (referral_id) REFERENCES incident_referrals(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS early_warnings (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  public_id VARCHAR(100) NOT NULL UNIQUE,
  type VARCHAR(190) NOT NULL,
  title TEXT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS early_warnings (
  CONSTRAINT fk_warning_user FOREIGN KEY (raised_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS training_attempts (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  application_id CHAR(36) NOT NULL,
  module_id VARCHAR(190) NOT NULL,
  answers JSON NOT NULL,
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS training_attempts (
  CONSTRAINT fk_training_app FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS certificates (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  application_id CHAR(36) NOT NULL UNIQUE,
  certificate_no VARCHAR(190) NOT NULL UNIQUE,
  issued_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS certificates (
  CONSTRAINT fk_certificate_user FOREIGN KEY (issued_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS check_ins (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  application_id CHAR(36) NOT NULL,
  polling_unit TEXT NOT NULL,
  lat DOUBLE NULL,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS check_ins (
  CONSTRAINT fk_checkin_app FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS announcements (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  from_label VARCHAR(190) NOT NULL,
  tier VARCHAR(100) NOT NULL,
  kind VARCHAR(100) NOT NULL,
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS announcements (
  CONSTRAINT fk_announcement_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS notifications (
- id CHAR(36) PRIMARY KEY,
+ id CHAR(36) NOT NULL DEFAULT (UUID()) PRIMARY KEY,
  user_id CHAR(36) NOT NULL,
  kind VARCHAR(100) NOT NULL,
  title TEXT NOT NULL,
