@@ -83,7 +83,27 @@ export async function one<T extends pg.QueryResultRow = pg.QueryResultRow>(
 
 export async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
   if (usingMysql()) {
-    throw new Error('MySQL transactions are not enabled until SQL conversion is complete')
+    const connection = await mysqlPool().getConnection()
+    try {
+      await connection.beginTransaction()
+      const { bindMysql } = await import('../../scripts/mysql-adapter.mjs')
+      const client = {
+        query: async <R extends pg.QueryResultRow = pg.QueryResultRow>(sql: string, values: unknown[] = []): Promise<pg.QueryResult<R>> => {
+          const bound = bindMysql(sql, values)
+          const [result] = await connection.query(bound.sql, bound.params)
+          const rows = Array.isArray(result) ? result as R[] : []
+          return { rows, rowCount: Array.isArray(result) ? rows.length : (result as mysql.ResultSetHeader).affectedRows, command: '', oid: 0, fields: [] }
+        },
+      }
+      const value = await fn(client as unknown as pg.PoolClient)
+      await connection.commit()
+      return value
+    } catch (error) {
+      try { await connection.rollback() } catch { /* preserve original error */ }
+      throw error
+    } finally {
+      connection.release()
+    }
   }
   const client = await pool().connect()
   try {
