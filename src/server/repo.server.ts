@@ -85,7 +85,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
     ? (
         await query<HistoryRow>(
           `select * from application_history where ${process.env.DB_ENGINE === 'mysql' ? `application_id in (${mysqlIdList(applicationIds)})` : 'application_id = any($1::uuid[])'} order by created_at`,
-          [applicationIds],
+          process.env.DB_ENGINE === 'mysql' ? applicationIds : [applicationIds],
         )
       ).rows
     : []
@@ -114,7 +114,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
     ? (
         await query<{ incident_id: string; kind: 'photo' | 'video' | 'document'; file_name: string }>(
           'select incident_id, kind, file_name from incident_evidence where ${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'}',
-          [incidentIds],
+          process.env.DB_ENGINE === 'mysql' ? incidentIds : [incidentIds],
         )
       ).rows
     : []
@@ -124,7 +124,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
     ? (
         await query<HistoryRow>(
           `select * from incident_history where ${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'} order by created_at`,
-          [incidentIds],
+          process.env.DB_ENGINE === 'mysql' ? incidentIds : [incidentIds],
         )
       ).rows
     : []
@@ -136,7 +136,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
           `select r.incident_id, r.agency_code, r.created_at, u.name as actor_name
            from incident_referrals r left join users u on u.id = r.created_by
            where r.${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'} order by r.created_at`,
-          [incidentIds],
+          process.env.DB_ENGINE === 'mysql' ? incidentIds : [incidentIds],
         )
       ).rows
     : []
