@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import {
   deleteCookie,
   getCookie,
@@ -16,6 +18,7 @@ const COOKIE = 'yego_session'
 const TTL_MS = 7 * 24 * 60 * 60 * 1000
 const MAX_FAILURES = 8
 const WINDOW_MINUTES = 15
+const isMysql = () => process.env.DB_ENGINE === 'mysql'
 
 function requestIp(): string | null {
   try {
@@ -161,9 +164,12 @@ async function createSession(user: AuthUser): Promise<void> {
   const token = randomToken(32)
   const { ip, userAgent } = meta()
   await query(
-    `insert into sessions (user_id, token_hash, expires_at, ip, user_agent)
-     values ($1,$2,$3,$4,$5)`,
-    [user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent],
+    isMysql()
+      ? `insert into sessions (id, user_id, token_hash, expires_at, ip, user_agent) values ($1,$2,$3,$4,$5,$6)`
+      : `insert into sessions (user_id, token_hash, expires_at, ip, user_agent) values ($1,$2,$3,$4,$5)`,
+    isMysql()
+      ? [randomUUID(), user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent]
+      : [user.id, sha256(token), new Date(Date.now() + TTL_MS), ip, userAgent],
   )
   setCookie(COOKIE, token, {
     httpOnly: true,
@@ -184,10 +190,14 @@ export async function destroySession(): Promise<void> {
 
 async function assertNotRateLimited(email: string, ip: string | null): Promise<void> {
   const row = await one<{ n: number }>(
-    `select count(*)::int as n from login_attempts
-     where (lower(email) = lower($1) or ($2::text is not null and ip = $2))
-       and success = false and created_at > now() - ($3 || ' minutes')::interval`,
-    [email, ip, WINDOW_MINUTES],
+    isMysql()
+      ? `select count(*) as n from login_attempts
+         where (lower(email) = lower($1) or ($2 is not null and ip = $2))
+         and success = false and created_at > date_sub(now(), interval 15 minute)`
+      : `select count(*)::int as n from login_attempts
+         where (lower(email) = lower($1) or ($2::text is not null and ip = $2))
+         and success = false and created_at > now() - ($3 || ' minutes')::interval`,
+    isMysql() ? [email, ip] : [email, ip, WINDOW_MINUTES],
   )
   if ((row?.n ?? 0) >= MAX_FAILURES) {
     throw new AppError('Too many sign-in attempts. Try again in 15 minutes.', 429)
@@ -261,11 +271,22 @@ export async function loginGuard(input: { applicationId: string; phone: string }
     }
 
     const email = `guard-${app.public_id.toLowerCase()}@yego.local`
+    const userId = randomUUID()
     const inserted = await client.query(
-      `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
-       values ($1,$2,$3,'YEGO Guard','guard','self',$4,$5,$6) returning *`,
-      [email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
+      isMysql()
+        ? `insert into users (id, email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
+           values ($1,$2,$3,$4,'YEGO Guard','guard','self',$5,$6,$7)`
+        : `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
+           values ($1,$2,$3,'YEGO Guard','guard','self',$4,$5,$6) returning *`,
+      isMysql()
+        ? [userId, email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id]
+        : [email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
     )
+    if (isMysql()) {
+      const selected = await client.query('select * from users where id = $1', [userId])
+      if (!selected.rows[0]) throw new Error('Created guard account could not be loaded')
+      return mapAuthUser(selected.rows[0])
+    }
     return mapAuthUser(inserted.rows[0])
   })
 
