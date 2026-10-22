@@ -49,6 +49,10 @@ const EMPTY: BootstrapData = {
   ready: true,
 }
 
+function mysqlIdList(ids: string[]): string {
+  return ids.map((_, index) => `${index + 1}`).join(', ')
+}
+
 function scopeParams(user: AuthUser, stateColumn: string, lgaColumn: string) {
   return scopeClause(user, stateColumn, lgaColumn, 1)
 }
@@ -80,7 +84,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
   const applicationHistory = applicationIds.length
     ? (
         await query<HistoryRow>(
-          `select * from application_history where application_id = any($1::uuid[]) order by created_at`,
+          `select * from application_history where ${process.env.DB_ENGINE === 'mysql' ? `application_id in (${mysqlIdList(applicationIds)})` : 'application_id = any($1::uuid[])'} order by created_at`,
           [applicationIds],
         )
       ).rows
@@ -109,7 +113,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
   const evidence = incidentIds.length
     ? (
         await query<{ incident_id: string; kind: 'photo' | 'video' | 'document'; file_name: string }>(
-          'select incident_id, kind, file_name from incident_evidence where incident_id = any($1::uuid[])',
+          'select incident_id, kind, file_name from incident_evidence where ${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'}',
           [incidentIds],
         )
       ).rows
@@ -119,7 +123,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
   const incidentHistory = incidentIds.length
     ? (
         await query<HistoryRow>(
-          `select * from incident_history where incident_id = any($1::uuid[]) order by created_at`,
+          `select * from incident_history where ${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'} order by created_at`,
           [incidentIds],
         )
       ).rows
@@ -131,7 +135,7 @@ export async function bootstrap(user: AuthUser | null): Promise<BootstrapData> {
         await query<{ incident_id: string; agency_code: string; created_at: Date; actor_name: string | null }>(
           `select r.incident_id, r.agency_code, r.created_at, u.name as actor_name
            from incident_referrals r left join users u on u.id = r.created_by
-           where r.incident_id = any($1::uuid[]) order by r.created_at`,
+           where r.${process.env.DB_ENGINE === 'mysql' ? `incident_id in (${mysqlIdList(incidentIds)})` : 'incident_id = any($1::uuid[])'} order by r.created_at`,
           [incidentIds],
         )
       ).rows
