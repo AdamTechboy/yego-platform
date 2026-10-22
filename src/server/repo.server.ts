@@ -231,8 +231,15 @@ export async function createApplication(input: Record<string, unknown>): Promise
     const nin = String(input.nin)
     const photo = String(input.photo)
 
+    const applicationUuid = randomUUID()
     const inserted = await client.query<ApplicationRow>(
-      `insert into applications
+      process.env.DB_ENGINE === 'mysql'
+        ? `insert into applications
+        (id, public_id, full_name, gender, date_of_birth, phone, whatsapp, email,
+         nin_ciphertext, nin_last4, state_of_origin, state_of_residence, lga, ward,
+         preferred_polling_unit, polling_unit, background, experience, photo_data)
+       values ($19,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`
+        : `insert into applications
         (public_id, full_name, gender, date_of_birth, phone, whatsapp, email,
          nin_ciphertext, nin_last4, state_of_origin, state_of_residence, lga, ward,
          preferred_polling_unit, polling_unit, background, experience, photo_data)
@@ -257,9 +264,12 @@ export async function createApplication(input: Record<string, unknown>): Promise
         input.background,
         String(input.experience ?? '').trim(),
         photo,
+        ...(process.env.DB_ENGINE === 'mysql' ? [applicationUuid] : []),
       ],
     )
-    const app = inserted.rows[0]
+    const app = process.env.DB_ENGINE === 'mysql'
+      ? (await client.query<ApplicationRow>('select * from applications where id = $1', [applicationUuid])).rows[0]
+      : inserted.rows[0]
 
     await client.query(
       `insert into application_history (application_id, action, to_status, actor_label)
