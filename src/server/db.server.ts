@@ -1,8 +1,32 @@
 import pg from 'pg'
+import mysql from 'mysql2/promise'
 
 declare global {
   var __yegoPool: pg.Pool | undefined
+  var __yegoMysqlPool: mysql.Pool | undefined
 }
+
+function usingMysql(): boolean {
+  return process.env.DB_ENGINE === 'mysql'
+}
+
+function mysqlPool(): mysql.Pool {
+  for (const key of ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD']) {
+    if (!process.env[key]) throw new Error('Missing MySQL setting: ' + key)
+  }
+  globalThis.__yegoMysqlPool ??= mysql.createPool({
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT || 3306),
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    charset: 'utf8mb4',
+    connectionLimit: 5,
+    waitForConnections: true,
+  })
+  return globalThis.__yegoMysqlPool
+}
+
 
 function connectionString(): string {
   const fromEnv = process.env.DATABASE_URL
@@ -34,6 +58,9 @@ export async function query<T extends pg.QueryResultRow = pg.QueryResultRow>(
   text: string,
   params: unknown[] = [],
 ): Promise<pg.QueryResult<T>> {
+  if (usingMysql()) {
+    throw new Error('MySQL query routing is not enabled until SQL conversion is complete')
+  }
   return pool().query<T>(text, params)
 }
 
@@ -46,6 +73,9 @@ export async function one<T extends pg.QueryResultRow = pg.QueryResultRow>(
 }
 
 export async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {
+  if (usingMysql()) {
+    throw new Error('MySQL transactions are not enabled until SQL conversion is complete')
+  }
   const client = await pool().connect()
   try {
     await client.query('begin')
@@ -66,6 +96,7 @@ export async function transaction<T>(fn: (client: pg.PoolClient) => Promise<T>):
 
 export function isDatabaseConfigured(): boolean {
   try {
+    if (usingMysql()) return ['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD'].every((key) => !!process.env[key])
     connectionString()
     return true
   } catch {
