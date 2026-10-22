@@ -295,10 +295,13 @@ export async function lookupApplication(applicationId: string, phone: string, ip
   const normalized = normalizePhone(phone)
 
   const failures = await one<{ n: number }>(
-    `select count(*)::int as n from audit_log
-     where action = 'application.lookup.failed'
-       and ($1::text is null or ip = $1)
-       and created_at > now() - interval '15 minutes'`,
+    process.env.DB_ENGINE === 'mysql'
+      ? `select count(*) as n from audit_log where action = 'application.lookup.failed'
+         and ($1 is null or ip = $1) and created_at > date_sub(now(), interval 15 minute)`
+      : `select count(*)::int as n from audit_log
+         where action = 'application.lookup.failed'
+           and ($1::text is null or ip = $1)
+           and created_at > now() - interval '15 minutes'`,
     [ip],
   )
   if ((failures?.n ?? 0) >= 10) {
@@ -336,8 +339,11 @@ export async function confirmWhatsApp(applicationId: string, phone: string) {
   const publicId = applicationId.trim().toUpperCase()
   const normalized = normalizePhone(phone)
   const result = await query(
-    `update applications set whatsapp_confirmed_at = coalesce(whatsapp_confirmed_at, now())
-     where upper(public_id) = $1 and phone = $2 returning public_id`,
+    process.env.DB_ENGINE === 'mysql'
+      ? `update applications set whatsapp_confirmed_at = coalesce(whatsapp_confirmed_at, now())
+         where upper(public_id) = $1 and phone = $2`
+      : `update applications set whatsapp_confirmed_at = coalesce(whatsapp_confirmed_at, now())
+         where upper(public_id) = $1 and phone = $2 returning public_id`,
     [publicId, normalized],
   )
   if (!result.rowCount) throw new AppError('Application not found.', 404)
