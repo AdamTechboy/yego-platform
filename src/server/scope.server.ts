@@ -76,8 +76,15 @@ export function scopeClause(
   switch (user.scope_kind) {
     case 'national':
       return { sql: 'true', params: [] }
-    case 'zone':
-      return { sql: `${stateColumn} = any($${paramIndex})`, params: [zoneStates(user.scope_zone ?? '')] }
+    case 'zone': {
+      const states = zoneStates(user.scope_zone ?? '')
+      if (process.env.DB_ENGINE === 'mysql') {
+        if (!states.length) return { sql: 'false', params: [] }
+        const placeholders = states.map((_, index) => `${paramIndex + index}`).join(', ')
+        return { sql: `${stateColumn} in (${placeholders})`, params: states }
+      }
+      return { sql: `${stateColumn} = any(${paramIndex})`, params: [states] }
+    }
     case 'state':
     case 'self':
       return { sql: `${stateColumn} = $${paramIndex}`, params: [user.scope_state] }
