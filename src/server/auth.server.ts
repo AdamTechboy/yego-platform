@@ -269,11 +269,20 @@ export async function loginGuard(input: { applicationId: string; phone: string }
     }
 
     const email = `guard-${app.public_id.toLowerCase()}@yego.local`
+    const userId = randomUUID()
     const inserted = await client.query(
-      `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
-       values ($1,$2,$3,'YEGO Guard','guard','self',$4,$5,$6) returning *`,
-      [email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
+      isMysql()
+        ? `insert into users (id, email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
+           values ($1,$2,$3,$4,'YEGO Guard','guard','self',$5,$6,$7)`
+        : `insert into users (email, password_hash, name, role, kind, scope_kind, scope_state, scope_lga, application_id)
+           values ($2,$3,$4,'YEGO Guard','guard','self',$5,$6,$7) returning *`,
+      [userId, email, hashPassword(randomToken(24)), app.full_name, app.state_of_residence, app.lga, app.id],
     )
+    if (isMysql()) {
+      const selected = await client.query('select * from users where id = $1', [userId])
+      if (!selected.rows[0]) throw new Error('Created guard account could not be loaded')
+      return mapAuthUser(selected.rows[0])
+    }
     return mapAuthUser(inserted.rows[0])
   })
 
